@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Editor-App-Intern</string>
+    <string name="take_a_photo">Take a photo</string>
+    <string name="album">Album</string>
+    <string name="capture_photo">Capture Photo</string>
+    <string name="filter">Filter</string>
+    <string name="normal">Normal</string>
+    <string name="image_saved">Take photo successfully</string>
+    <string name="time_5s">5s</string>
+    <string name="time_3s">3s</string>
+    <string name="time_7s">7s</string>
+    <string name="time_10s">10s</string>
+    <string name="turn_off_timer">Turn off</string>
+    <string name="default_timer">1s</string>
+    <string name="count_down_timer">5</string>
+</resources>
