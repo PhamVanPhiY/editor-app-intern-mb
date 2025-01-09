@@ -13,4 +13,27 @@
     <string name="turn_off_timer">Turn off</string>
     <string name="default_timer">1s</string>
     <string name="count_down_timer">5</string>
+    <string name="slogan">Edit Photos like a Pro in just One Click</string>
+    <string name="try_it_now">TRY IT NOW</string>
+    <string name="draw">Draw</string>
+    <string name="save">Save</string>
+    <string name="pick_color">Please select a color which you want.</string>
+    <string name="path">Pictures/MyApp/EditedImages</string>
+    <string name="exception_cant_open_output_stream">Không thể mở OutputStream</string>
+    <string name="exception_cant_create_record_in_media_store">Không thể tạo bản ghi mới trong MediaStore</string>
+    <string name="fail_to_save_image">Lỗi khi lưu ảnh</string>
+    <string name="save_image_successfully">Image saved</string>
+    <string name="delete">delete</string>
+    <string name="permission_required">Permission Required</string>
+    <string name="storage_permission_is_required_to_access_images">Storage permission is required to access images</string>
+    <string name="permission_denied_permanently_dialog">Storage permission is denied permanently. You can enable it in the app settings. Do you want to go to the app settings?</string>
+    <string name="ok">Oke</string>
+    <string name="notice">notice</string>
+    <string name="delete_image">delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="save_image">save image</string>
+    <string name="save_new">save new</string>
+    <string name="save_replace">save place</string>
+    <string name="discard_changes">discard changes\n</string>
+    <string name="enter_text">Enter text</string>
 </resources>

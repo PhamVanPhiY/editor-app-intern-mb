@@ -3,5 +3,9 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="gray">#D6D4D5</color>
-    <color name="red">#FFC80000</color>"
+    <color name="red">#FFC80000</color>
+    <color name="start_color_button_try_now">#6573ED</color>
+    <color name="end_color_button_try_now">#14D2E6</color>
+    <color name="bg_button">#afcee6</color>
+    <color name="bg_under_image">#e0e7e2</color>
 </resources>

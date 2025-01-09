@@ -40,8 +40,10 @@ android {
 
 dependencies {
     implementation(libs.gpuimage)
+    implementation(libs.drawingview)
+    implementation(libs.colorpicker)
     implementation(libs.camera.extensions)
-    implementation (libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

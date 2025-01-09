@@ -3,11 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
+    android:layout_margin="@dimen/size_5dp"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
     tools:context=".ui.camera.CameraActivity">
-
 
     <jp.co.cyberagent.android.gpuimage.GPUImageView
         android:id="@+id/gpu_image_view"

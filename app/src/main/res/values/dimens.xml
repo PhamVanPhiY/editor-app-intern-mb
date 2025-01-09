@@ -2,6 +2,8 @@
 <resources>
     <dimen name="size_1000dp">1000dp</dimen>
     <dimen name="size_600dp">600dp</dimen>
+    <dimen name="size_450dp">450dp</dimen>
+    <dimen name="size_400dp">400dp</dimen>
     <dimen name="size_350dp">350dp</dimen>
     <dimen name="size_300dp">300dp</dimen>
     <dimen name="size_250dp">250dp</dimen>
@@ -22,11 +24,13 @@
     <dimen name="size_0dp">0dp</dimen>
 
     <!--    Text-->
+    <dimen name="size_40sp">40sp</dimen>
     <dimen name="size_24sp">24sp</dimen>
     <dimen name="size_22sp">22sp</dimen>
     <dimen name="size_20sp">20sp</dimen>
     <dimen name="size_18sp">18sp</dimen>
     <dimen name="size_16sp">16sp</dimen>
     <dimen name="size_210dp">210dp</dimen>
+    <dimen name="size_30sp">30sp</dimen>
 
 </resources>

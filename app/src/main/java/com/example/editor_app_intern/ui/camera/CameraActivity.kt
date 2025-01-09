@@ -2,8 +2,10 @@ package com.example.editor_app_intern.ui.camera
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
@@ -29,8 +31,10 @@ import com.example.editor_app_intern.R
 import com.example.editor_app_intern.SharedPreferences
 import com.example.editor_app_intern.adapter.FilterCameraAdapter
 import com.example.editor_app_intern.constant.Constants
+import com.example.editor_app_intern.constant.Constants.PATH_IMAGE_INTENT
 import com.example.editor_app_intern.databinding.ActivityCameraBinding
 import com.example.editor_app_intern.model.FilterCamera
+import com.example.editor_app_intern.ui.edit.EditActivity
 import com.example.editor_app_intern.utils.YuvToRgbConverter
 import jp.co.cyberagent.android.gpuimage.GPUImage
 import jp.co.cyberagent.android.gpuimage.GPUImageView
@@ -71,6 +75,7 @@ class CameraActivity : AppCompatActivity() {
     private var bitmap: Bitmap? = null
     private var isFilterVisible = false
     private var isTimeVisible = false
+
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,7 +87,7 @@ class CameraActivity : AppCompatActivity() {
         preferences = SharedPreferences(this)
         countdownTimeInMillis = preferences.getTimerValue()
         Log.d("countdownTimeInMillis", countdownTimeInMillis.toString())
-        if(countdownTimeInMillis > 0){
+        if (countdownTimeInMillis > 0) {
             binding.timerHeader.visibility = View.VISIBLE
             val timerSecond = countdownTimeInMillis / 1000
             binding.tvTimer.text = timerSecond.toString()
@@ -183,6 +188,7 @@ class CameraActivity : AppCompatActivity() {
 
     }
 
+    @SuppressLint("SetTextI18n")
     private fun enableTimer(timer: Int) {
         countdownTimeInMillis = timer * 1000L
         preferences.saveTimerValue(countdownTimeInMillis)
@@ -234,20 +240,19 @@ class CameraActivity : AppCompatActivity() {
                     CoroutineScope(Dispatchers.IO).launch {
                         val filteredBitmap = gpuImageView.gpuImage.bitmapWithFilterApplied
                         saveFilteredBitmapToFile(filteredBitmap, photoFile)
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(baseContext, R.string.image_saved, Toast.LENGTH_LONG)
-                                .show()
-
-                        }
+                        notifyImageSaved(photoFile.absolutePath)
                     }
                 }
-            })
+            }
+        )
     }
+
 
     private fun startCountdown() {
         countdownTimer?.cancel()
 
         countdownTimer = object : CountDownTimer(countdownTimeInMillis, 1000) {
+            @SuppressLint("SetTextI18n")
             override fun onTick(millisUntilFinished: Long) {
                 countdownTimeInMillis = millisUntilFinished
                 binding.countDownTimer.text = (millisUntilFinished / 1000).toString()
@@ -266,9 +271,15 @@ class CameraActivity : AppCompatActivity() {
     private suspend fun saveFilteredBitmapToFile(bitmap: Bitmap?, file: File) {
         if (bitmap != null) {
             try {
+                val finalBitmap = if (isFrontCamera) {
+                    createMirroredBitmap(bitmap)
+                } else {
+                    bitmap
+                }
+                val rotatedBitmap = rotateBitmap(finalBitmap, 90f)
                 withContext(Dispatchers.IO) {
                     FileOutputStream(file).use { outputStream ->
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+                        rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
                     }
                 }
                 Log.d(TAG, "Filtered bitmap saved successfully.")
@@ -278,6 +289,21 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
+    private fun rotateBitmap(bitmap: Bitmap, degrees: Float): Bitmap {
+        val matrix = Matrix().apply { postRotate(degrees) }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    }
+
+    private suspend fun notifyImageSaved(imagePath: String) {
+        withContext(Dispatchers.Main) {
+            Toast.makeText(baseContext, R.string.image_saved, Toast.LENGTH_LONG).show()
+            val intent = Intent(this@CameraActivity, EditActivity::class.java).apply {
+                putExtra(PATH_IMAGE_INTENT, imagePath)
+            }
+            startActivity(intent)
+            finish()
+        }
+    }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
@@ -327,6 +353,11 @@ class CameraActivity : AppCompatActivity() {
                 var bitmap = allocateBitmapIfNecessary(it.width, it.height)
                 converter.yuvToRgb(it.image!!, bitmap)
                 it.close()
+                if (isFrontCamera) {
+                    val matrix = Matrix().apply { postScale(-1f, 1f) }
+                    bitmap =
+                        Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                }
                 gpuImageView.post {
                     gpuImageView.setImage(bitmap)
                 }
@@ -354,6 +385,19 @@ class CameraActivity : AppCompatActivity() {
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val REQUEST_CODE_PERMISSIONS = 20
         private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+    }
+
+    private fun createMirroredBitmap(originalBitmap: Bitmap): Bitmap {
+        val matrix = Matrix().apply { postScale(-1f, 1f) }
+        return Bitmap.createBitmap(
+            originalBitmap,
+            0,
+            0,
+            originalBitmap.width,
+            originalBitmap.height,
+            matrix,
+            true
+        )
     }
 
     override fun onDestroy() {
