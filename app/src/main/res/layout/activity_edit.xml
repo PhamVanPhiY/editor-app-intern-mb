@@ -37,15 +37,15 @@
         android:background="@drawable/redo"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/lb_draw"
-        app:layout_constraintEnd_toStartOf="@+id/btn_clear_all"
+        app:layout_constraintEnd_toStartOf="@+id/btn_remove_background"
         app:layout_constraintStart_toEndOf="@id/btn_undo"
         app:layout_constraintTop_toTopOf="@id/lb_draw" />
 
     <ImageView
-        android:id="@+id/btn_clear_all"
+        android:id="@+id/btn_remove_background"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_25dp"
-        android:background="@drawable/clear"
+        android:background="@drawable/remove"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/lb_draw"
         app:layout_constraintEnd_toStartOf="@+id/btn_album"
@@ -60,7 +60,7 @@
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/lb_draw"
         app:layout_constraintEnd_toStartOf="@id/btn_save"
-        app:layout_constraintStart_toEndOf="@id/btn_clear_all"
+        app:layout_constraintStart_toEndOf="@id/btn_remove_background"
         app:layout_constraintTop_toTopOf="@id/lb_draw" />
 
     <ImageView
@@ -100,23 +100,18 @@
 
         </com.example.editor_app_intern.customeview.PaintView>
 
-        <EditText
-            android:id="@+id/movableEditText"
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleLarge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:autofillHints="name"
-            android:background="@drawable/border_rectangle"
-            android:gravity="center"
-            android:hint="@string/enter_text"
-            android:inputType="text"
-            android:padding="@dimen/size_10dp"
-            android:textColor="@color/black"
-            android:textSize="@dimen/size_16sp"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="@+id/paintView"
-            app:layout_constraintEnd_toEndOf="@+id/paintView"
-            app:layout_constraintStart_toStartOf="@+id/paintView"
-            app:layout_constraintTop_toTopOf="@+id/paintView" />
+            android:layout_centerInParent="true"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@id/paintView"
+            app:layout_constraintEnd_toEndOf="@id/paintView"
+            app:layout_constraintStart_toStartOf="@id/paintView"
+            app:layout_constraintTop_toTopOf="@id/paintView" />
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -132,11 +127,11 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <ImageButton
-        android:id="@+id/btn_border"
+        android:id="@+id/btn_text"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_25dp"
         android:layout_marginBottom="@dimen/size_15dp"
-        android:background="@drawable/border"
+        android:background="@drawable/icon_text"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/btn_draw"
@@ -148,9 +143,9 @@
         android:layout_height="@dimen/size_25dp"
         android:background="@drawable/pencil"
         android:contentDescription="@null"
-        app:layout_constraintBottom_toBottomOf="@+id/btn_border"
+        app:layout_constraintBottom_toBottomOf="@+id/btn_text"
         app:layout_constraintEnd_toStartOf="@+id/btn_eraser"
-        app:layout_constraintStart_toEndOf="@+id/btn_border" />
+        app:layout_constraintStart_toEndOf="@+id/btn_text" />
 
     <ImageButton
         android:id="@+id/btn_eraser"
@@ -191,5 +186,75 @@
         app:layout_constraintBottom_toBottomOf="@id/btn_draw"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/btn_color_picked" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_input_text"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:visibility="invisible">
+
+        <ImageView
+            android:background="@drawable/tick"
+            android:contentDescription="@null"
+            android:id="@+id/btn_done"
+            android:layout_width="@dimen/size_30sp"
+            android:layout_height="@dimen/size_30sp"
+            android:layout_marginTop="@dimen/size_30sp"
+            android:layout_marginEnd="@dimen/size_30sp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <EditText
+            android:fontFamily="@font/poppins_bold"
+            android:background="@null"
+            android:id="@+id/tv_input_text"
+            android:layout_width="@dimen/size_200dp"
+            android:layout_height="wrap_content"
+            android:autofillHints="Write something"
+            android:enabled="false"
+            android:textSize="@dimen/size_28sp"
+            android:inputType="text"
+            app:layout_constraintBottom_toTopOf="@id/button_container"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/button_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:padding="16dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <Button
+                android:id="@+id/btn_font_lato"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Font lato" />
+
+            <Button
+                android:id="@+id/btn_font_rubik"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Font rubik" />
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+    <TextView
+        android:visibility="invisible"
+        android:id="@+id/tv_entered_text"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

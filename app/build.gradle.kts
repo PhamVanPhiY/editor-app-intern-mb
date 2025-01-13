@@ -39,6 +39,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.removebg)
     implementation(libs.gpuimage)
     implementation(libs.drawingview)
     implementation(libs.colorpicker)
