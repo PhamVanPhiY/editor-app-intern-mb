@@ -27,10 +27,17 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.editor_app_intern.InsetsWithKeyboardAnimationCallback
+import com.example.editor_app_intern.InsetsWithKeyboardCallback
 import com.example.editor_app_intern.R
+import com.example.editor_app_intern.adapter.FontAdapter
 import com.example.editor_app_intern.constant.Constants.PATH_IMAGE_INTENT
 import com.example.editor_app_intern.customeview.PaintView
 import com.example.editor_app_intern.databinding.ActivityEditBinding
+import com.example.editor_app_intern.model.FontItem
 import com.github.dhaval2404.colorpicker.MaterialColorPickerDialog
 import com.github.dhaval2404.colorpicker.model.ColorShape
 import com.github.dhaval2404.colorpicker.model.ColorSwatch
@@ -42,6 +49,8 @@ class EditActivity : AppCompatActivity() {
     private var isBackgroundRemoved = false
     private var textX: Float = 400f
     private var textY: Float = 600f
+    var isDrawingEnabled = false
+    private lateinit var editViewModel: EditViewModel
     private lateinit var inputMethodManager: InputMethodManager
     private lateinit var permissionsRequestLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var singlePhotoPickerLauncher: ActivityResultLauncher<PickVisualMediaRequest>
@@ -52,71 +61,54 @@ class EditActivity : AppCompatActivity() {
         enableEdgeToEdge()
         binding = ActivityEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        val insetsWithKeyboardCallback = InsetsWithKeyboardCallback(window)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root, insetsWithKeyboardCallback)
+        ViewCompat.setWindowInsetsAnimationCallback(binding.root, insetsWithKeyboardCallback)
+        editViewModel = ViewModelProvider(this).get(EditViewModel::class.java)
+
+        editViewModel.fontList.observe(this, { fontList ->
+            setUpFontRecyclerView(fontList)
+        })
+        val insetsWithKeyboardAnimationCallback =
+            InsetsWithKeyboardAnimationCallback(binding.rcvFont)
+        ViewCompat.setWindowInsetsAnimationCallback(
+            binding.rcvFont,
+            insetsWithKeyboardAnimationCallback
+        )
         inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         val imagePath = intent.getStringExtra(PATH_IMAGE_INTENT)
 
         progressBarRemoveBackground = binding.progressBar
-//        imagePath?.let {
-//            val originalBitmap = BitmapFactory.decodeFile(it)
-//            binding.paintView.viewTreeObserver.addOnGlobalLayoutListener(object :
-//                ViewTreeObserver.OnGlobalLayoutListener {
-//                override fun onGlobalLayout() {
-//                    val paintViewWidth = binding.paintView.width
-//                    val paintViewHeight = binding.paintView.height
-//
-//
-//                    if (paintViewWidth > 0 && paintViewHeight > 0) {
-//
-//                        val scaledBitmap = Bitmap.createScaledBitmap(
-//                            originalBitmap,
-//                            paintViewWidth,
-//                            paintViewHeight,
-//                            true
-//                        )
-//
-//                        binding.paintView.setBackgroundBitmap(scaledBitmap)
-//
-//                        Log.d(
-//                            "EditActivity",
-//                            "Scaled Bitmap size: ${scaledBitmap.width} x ${scaledBitmap.height}"
-//                        )
-//                        binding.paintView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-//                    }
-//                }
-//            })
-//        }
-        binding.paintView.viewTreeObserver.addOnGlobalLayoutListener(object :
-            ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                val paintViewWidth = binding.paintView.width
-                val paintViewHeight = binding.paintView.height
+        imagePath?.let {
+            val originalBitmap = BitmapFactory.decodeFile(it)
+            binding.paintView.viewTreeObserver.addOnGlobalLayoutListener(object :
+                ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    val paintViewWidth = binding.paintView.width
+                    val paintViewHeight = binding.paintView.height
 
-                if (paintViewWidth > 0 && paintViewHeight > 0) {
-                    // Tải bitmap từ drawable
-                    val originalBitmap =
-                        BitmapFactory.decodeResource(resources, R.drawable.filter_constrast)
 
-                    // Tính toán tỷ lệ
-                    val scaleWidth = paintViewWidth.toFloat() / originalBitmap.width
-                    val scaleHeight = paintViewHeight.toFloat() / originalBitmap.height
-                    val scale = Math.min(scaleWidth, scaleHeight)
+                    if (paintViewWidth > 0 && paintViewHeight > 0) {
 
-                    // Tính toán kích thước mới
-                    val scaledWidth = (originalBitmap.width * scale).toInt()
-                    val scaledHeight = (originalBitmap.height * scale).toInt()
+                        val scaledBitmap = Bitmap.createScaledBitmap(
+                            originalBitmap,
+                            paintViewWidth,
+                            paintViewHeight,
+                            true
+                        )
 
-                    // Tạo bitmap đã được scale
-                    val scaledBitmap =
-                        Bitmap.createScaledBitmap(originalBitmap, scaledWidth, scaledHeight, true)
+                        binding.paintView.setBackgroundBitmap(scaledBitmap)
 
-                    // Thiết lập bitmap đã được scale cho PaintView
-                    binding.paintView.setBackgroundBitmap(scaledBitmap)
-
-                    // Xóa listener sau khi đã xử lý
-                    binding.paintView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                        Log.d(
+                            "EditActivity",
+                            "Scaled Bitmap size: ${scaledBitmap.width} x ${scaledBitmap.height}"
+                        )
+                        binding.paintView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    }
                 }
-            }
-        })
+            })
+        }
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -137,7 +129,8 @@ class EditActivity : AppCompatActivity() {
     private fun setUpView() {
         binding.apply {
             btnDraw.setOnClickListener {
-
+//                paintView.isDrawingEnabled = true
+                paintView.startTouch(0f, 0f)
             }
 
             btnEraser.setOnClickListener {
@@ -158,30 +151,34 @@ class EditActivity : AppCompatActivity() {
                 paintView.redoDrawing()
             }
 
-//            btnRemoveBackground.setOnClickListener {
-//                if (!isBackgroundRemoved) {
-//                    val bitmap = paintView.canvasBitmap
-//                    if (bitmap != null) {
-//                        progressBarRemoveBackground.visibility = View.VISIBLE
-//                        paintView.removeBackground(bitmap, progressBarRemoveBackground)
-//                        isBackgroundRemoved = true
-//                    } else {
-//                        Toast.makeText(this@EditActivity, "Canvas is empty", Toast.LENGTH_SHORT)
-//                            .show()
-//                    }
-//                } else {
-//
-//                    paintView.undoRemoveBackground()
-//                    isBackgroundRemoved = false
-//
-//                }
-//            }
+            btnRemoveBackground.setOnClickListener {
+                if (!isBackgroundRemoved) {
+                    val bitmap = paintView.canvasBitmap
+                    if (bitmap != null) {
+                        progressBarRemoveBackground.visibility = View.VISIBLE
+                        paintView.removeBackground(bitmap, progressBarRemoveBackground)
+                        isBackgroundRemoved = true
+                    } else {
+                        Toast.makeText(this@EditActivity, "Canvas is empty", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                } else {
+
+                    paintView.undoRemoveBackground()
+                    isBackgroundRemoved = false
+
+                }
+            }
 
             btnPickColor.setOnClickListener {
                 setBrushColor(this@EditActivity, paintView, btnColorPicked)
             }
 
             btnColorPicked.setOnClickListener {
+                setBrushColor(this@EditActivity, paintView, btnColorPicked)
+            }
+
+            btnColor.setOnClickListener {
                 setBrushColor(this@EditActivity, paintView, btnColorPicked)
             }
 
@@ -192,17 +189,12 @@ class EditActivity : AppCompatActivity() {
                 getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
 
             btnText.setOnClickListener {
-                // Kiểm tra xem hình chữ nhật có hiển thị hay không
-                if (paintView.isTextBoxVisible && paintView.userText == null) { // Không hiển thị hình chữ nhật và không có văn bản
-                    openInputText() // Mở input text mới
-                    Toast.makeText(this@EditActivity, "Open Input Text", Toast.LENGTH_SHORT).show()
-                } else {
-                    // Không làm gì nếu đang trỏ về một text hay đang hiện hình chữ nhật
-                    Toast.makeText(this@EditActivity, "Cannot open Input Text", Toast.LENGTH_SHORT)
-                        .show()
-                }
+                openInputText()
             }
 
+            btnColor.setOnClickListener {
+                setColorForText()
+            }
             btnDone.setOnClickListener {
                 val slideDownAnimation =
                     AnimationUtils.loadAnimation(this@EditActivity, R.anim.slide_down)
@@ -211,20 +203,14 @@ class EditActivity : AppCompatActivity() {
                 inputMethodManager.hideSoftInputFromWindow(tvInputText.windowToken, 0)
 
                 val textEntered = tvInputText.text.toString()
+
                 if (textEntered.isNotEmpty()) {
                     paintView.drawText(textEntered, textX, textY)
                 }
+                paintView.isTextBoxVisible = true
             }
 
-            btnFontRubik.setOnClickListener {
-                tvInputText.setTypeface(Typeface.createFromAsset(assets, "fonts/rubik_regular.ttf"))
-                paintView.setFont("fonts/rubik_regular.ttf") // Gọi phương thức setFont
-            }
 
-            btnFontLato.setOnClickListener {
-                tvInputText.setTypeface(Typeface.createFromAsset(assets, "fonts/lato_regular.ttf"))
-                paintView.setFont("fonts/lato_regular.ttf") // Gọi phương thức setFont
-            }
 
             btnSave.setOnClickListener {
                 saveImage()
@@ -276,6 +262,33 @@ class EditActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("ResourceType")
+    private fun setColorForText() {
+        MaterialColorPickerDialog.Builder(this@EditActivity).setTitle(R.string.pick_color)
+            .setColorShape(ColorShape.CIRCLE).setColorSwatch(ColorSwatch._300)
+            .setDefaultColor(Color.BLACK).setColorListener { color, _ ->
+                binding.apply {
+                    tvInputText.setTextColor(color)
+                    paintView.setBrushColorForText(color)
+                }
+            }.show()
+    }
+
+    private fun setUpFontRecyclerView(fontList: List<FontItem>) {
+        val fontAdapter = FontAdapter(fontList) { font ->
+            applyFont(font)
+        }
+        binding.rcvFont.layoutManager =
+            LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
+        binding.rcvFont.adapter = fontAdapter
+    }
+
+    private fun applyFont(font: FontItem) {
+        binding.apply {
+            tvInputText.setTypeface(Typeface.createFromAsset(assets, font.fontPath))
+            paintView.setFont(font.fontPath) // Gọi phương thức setFont
+        }
+    }
 //    private fun setUpLauncher() {
 //        permissionsRequestLauncher = registerForActivityResult(
 //            ActivityResultContracts.RequestMultiplePermissions()
@@ -348,8 +361,8 @@ class EditActivity : AppCompatActivity() {
 
     fun openInputText() {
         binding.apply {
-            val slideUpAnimation =
-                AnimationUtils.loadAnimation(this@EditActivity, R.anim.slide_up)
+            paintView.isTextBoxVisible = true
+            val slideUpAnimation = AnimationUtils.loadAnimation(this@EditActivity, R.anim.slide_up)
             layoutInputText.visibility = ConstraintLayout.VISIBLE
             layoutInputText.startAnimation(slideUpAnimation)
             tvInputText.isEnabled = true
@@ -370,6 +383,23 @@ class EditActivity : AppCompatActivity() {
             inputMethodManager.showSoftInput(tvInputText, InputMethodManager.SHOW_IMPLICIT)
             textX = x
             textY = y
+        }
+    }
+
+    fun openEditSizeText() {
+        binding.apply {
+            val slideUpAnimation = AnimationUtils.loadAnimation(this@EditActivity, R.anim.slide_up)
+            layoutEditSizeText.visibility = ConstraintLayout.VISIBLE
+            layoutEditSizeText.startAnimation(slideUpAnimation)
+        }
+    }
+
+    fun closeEditSizeText() {
+        binding.apply {
+            val slideDownAnimation =
+                AnimationUtils.loadAnimation(this@EditActivity, R.anim.slide_down)
+            layoutEditSizeText.visibility = ConstraintLayout.INVISIBLE
+            layoutEditSizeText.startAnimation(slideDownAnimation)
         }
     }
 
@@ -397,8 +427,7 @@ class EditActivity : AppCompatActivity() {
             put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(
-                    MediaStore.Images.Media.RELATIVE_PATH,
-                    resources.getString(R.string.path)
+                    MediaStore.Images.Media.RELATIVE_PATH, resources.getString(R.string.path)
                 )
             }
         }
@@ -408,14 +437,10 @@ class EditActivity : AppCompatActivity() {
                 contentResolver.openOutputStream(uri).use { outputStream ->
                     if (outputStream != null) {
                         borderedBitmap?.compress(
-                            Bitmap.CompressFormat.JPEG,
-                            100,
-                            outputStream
+                            Bitmap.CompressFormat.JPEG, 100, outputStream
                         )
                         Toast.makeText(
-                            this@EditActivity,
-                            R.string.save_image_successfully,
-                            Toast.LENGTH_SHORT
+                            this@EditActivity, R.string.save_image_successfully, Toast.LENGTH_SHORT
                         ).show()
                     } else {
                         throw IOException(resources.getString(R.string.exception_cant_open_output_stream))
@@ -437,18 +462,13 @@ class EditActivity : AppCompatActivity() {
 
     @SuppressLint("ResourceType")
     private fun setBrushColor(context: Context, paintView: PaintView, btnColorPicked: ImageView) {
-        MaterialColorPickerDialog
-            .Builder(context)
-            .setTitle(R.string.pick_color)
-            .setColorShape(ColorShape.CIRCLE)
-            .setColorSwatch(ColorSwatch._300)
-            .setDefaultColor(Color.BLACK)
-            .setColorListener { color, colorHex ->
+        MaterialColorPickerDialog.Builder(context).setTitle(R.string.pick_color)
+            .setColorShape(ColorShape.CIRCLE).setColorSwatch(ColorSwatch._300)
+            .setDefaultColor(Color.BLACK).setColorListener { color, colorHex ->
                 paintView.setBrushColor(color);
                 val drawable = btnColorPicked.background.mutate()
                 drawable.setColorFilter(color, PorterDuff.Mode.SRC_IN)
-            }
-            .show()
+            }.show()
     }
 
     @SuppressLint("ResourceType")

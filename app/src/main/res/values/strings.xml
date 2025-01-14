@@ -36,4 +36,7 @@
     <string name="save_replace">save place</string>
     <string name="discard_changes">discard changes\n</string>
     <string name="enter_text">Enter text</string>
+    <string name="write_something">Write something</string>
+    <string name="aa">Aa</string>
+    <string name="size_default">40</string>
 </resources>

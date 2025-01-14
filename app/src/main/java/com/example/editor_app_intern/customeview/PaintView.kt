@@ -15,9 +15,14 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import android.widget.ProgressBar
 import com.example.editor_app_intern.R
 import com.example.editor_app_intern.ui.edit.EditActivity
 import dev.eren.removebg.RemoveBg
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 
@@ -47,15 +52,33 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         brushSize = DEFAULT_BRUSH_SIZE
         touchTolerance = DEFAULT_TOUCH_TOLERANCE
         textSize = 100f
+    }
+    private val PaintForText = Paint().apply {
+        isAntiAlias = true
+        isDither = true
+        color = DEFAULT_BRUSH_COLOR_FOR_TEXT
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        alpha = 0xff
+        setXfermode(null)
+        alpha = 0xff
+        brushColorForText = DEFAULT_BRUSH_COLOR_FOR_TEXT
+        backgroundColor = DEFAULT_BG_COLOR
+        brushSize = DEFAULT_BRUSH_SIZE
+        touchTolerance = DEFAULT_TOUCH_TOLERANCE
+        textSize = 50f
         try {
             typeface = Typeface.createFromAsset(context?.assets, "fonts/rubik_regular.ttf")
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
+
+
     private val paths = ArrayList<DrawingPath>()
     private val undoPaths = ArrayList<DrawingPath>()
     private var brushColor: Int
+    private var brushColorForText: Int
     private var backgroundBitmap: Bitmap? = null
     private val backgroundPaint = Paint().apply {
         color = Color.BLACK
@@ -94,7 +117,8 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private val scaledIconRotateText: Bitmap =
         Bitmap.createScaledBitmap(iconRotateText, iconWidth, iconHeight, true)
     private var mCanvas: Canvas? = null
-    var isDrawingEnabled = false
+
+    //    var isDrawingEnabled = false
     private val mBitmapPaint = Paint().apply {
         color = Color.BLACK
         textSize = 50f
@@ -105,20 +129,6 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private var tempBrushColor = 0
     var drawText: String? = null
 
-//    init {
-//        mPaint.isAntiAlias = true
-//        mPaint.isDither = true
-//        mPaint.color = DEFAULT_BRUSH_COLOR
-//        mPaint.style = Paint.Style.STROKE
-//        mPaint.strokeJoin = Paint.Join.ROUND
-//        mPaint.strokeCap = Paint.Cap.ROUND
-//        mPaint.setXfermode(null)
-//        mPaint.alpha = 0xff
-//        brushColor = DEFAULT_BRUSH_COLOR
-//        backgroundColor = DEFAULT_BG_COLOR
-//        brushSize = DEFAULT_BRUSH_SIZE
-//        touchTolerance = DEFAULT_TOUCH_TOLERANCE
-//    }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -126,31 +136,31 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         mCanvas = Canvas(canvasBitmap!!)
     }
 
-    fun enableDrawing(enable: Boolean) {
-        isDrawingEnabled = enable
+//    fun enableDrawing(enable: Boolean) {
+//        isDrawingEnabled = enable
+//    }
+
+    fun removeBackground(inputBitmap: Bitmap, progressBar: ProgressBar) {
+        previousBackgroundBitmap = backgroundBitmap?.copy(Bitmap.Config.ARGB_8888, true)
+        CoroutineScope(Dispatchers.IO).launch {
+            remover?.clearBackground(inputBitmap)?.collect { outputBitmap ->
+                outputBitmap?.let {
+                    Log.d("PaintView", "Output Bitmap size: ${it.width} x ${it.height}")
+                    withContext(Dispatchers.Main) {
+                        setBackgroundBitmap(it)
+                        progressBar.visibility = View.GONE
+                    }
+                }
+            }
+        }
     }
 
-//    fun removeBackground(inputBitmap: Bitmap, progressBar: ProgressBar) {
-//        previousBackgroundBitmap = backgroundBitmap?.copy(Bitmap.Config.ARGB_8888, true)
-//        CoroutineScope(Dispatchers.IO).launch {
-//            remover?.clearBackground(inputBitmap)?.collect { outputBitmap ->
-//                outputBitmap?.let {
-//                    Log.d("PaintView", "Output Bitmap size: ${it.width} x ${it.height}")
-//                    withContext(Dispatchers.Main) {
-//                        setBackgroundBitmap(it)
-//                        progressBar.visibility = View.GONE
-//                    }
-//                }
-//            }
-//        }
-//    }
-
-//    fun undoRemoveBackground() {
-//        previousBackgroundBitmap?.let {
-//            setBackgroundBitmap(it)
-//            previousBackgroundBitmap = null
-//        }
-//    }
+    fun undoRemoveBackground() {
+        previousBackgroundBitmap?.let {
+            setBackgroundBitmap(it)
+            previousBackgroundBitmap = null
+        }
+    }
 
     override fun setBackgroundColor(color: Int) {
         backgroundColor = color
@@ -192,17 +202,17 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         canvas.drawBitmap(canvasBitmap!!, 0f, 0f, mBitmapPaint)
 
         if (userText != null) {
-            canvas.drawText(userText!!, textX, textY, mPaint) // Luôn vẽ văn bản
+            canvas.drawText(userText!!, textX, textY, PaintForText) // Luôn vẽ văn bản
         }
         if (isTextBoxVisible) {
             // Vẽ hình chữ nhật và các biểu tượng chỉ khi isTextBoxVisible là true
             userText?.let {
                 val textWidth = mPaint.measureText(it)
                 val textHeight = mPaint.textSize
-                val rectLeft = textX - 20
-                val rectTop = textY - textHeight - 20
-                val rectRight = textX + textWidth + 20
-                val rectBottom = textY + 20
+                val rectLeft = textX - 10
+                val rectTop = textY - textHeight - 10
+                val rectRight = textX + textWidth + 10
+                val rectBottom = textY + 10
 
                 val borderPaint = Paint().apply {
                     color = Color.WHITE
@@ -354,11 +364,16 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+//                if (!isDrawingEnabled) {
+//                    return true
+//                }
                 // Kiểm tra nếu chạm vào vùng hình chữ nhật
                 if (isTextBoxVisible && isTextBoxTouched(x, y)) {
                     isDraggingTextBox = true
                     initialTouchX = x
                     initialTouchY = y
+                    activityContext.openEditSizeText()
+
                 } else {
                     // Kiểm tra các biểu tượng
                     if (deleteIconRect.contains(x.toInt(), y.toInt())) {
@@ -372,8 +387,11 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                     // Nếu không chạm vào hình chữ nhật, ẩn nó đi
                     if (isTextBoxVisible && !isTextTouched(x, y)) {
                         isTextBoxVisible = false
+                        activityContext.closeEditSizeText()
                         invalidate() // Chỉ làm mới lại để ẩn hình chữ nhật và các icon
+
                         return true
+
                     }
 
                     // Nếu không chạm vào văn bản, bắt đầu vẽ
@@ -416,6 +434,9 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     }
 
     private fun isTextTouched(x: Float, y: Float): Boolean {
+        if (userText == null) {
+            return false
+        }
         val textWidth = mPaint.measureText(userText)
         val textHeight = mPaint.textSize
         val rectLeft = textX - 20
@@ -463,6 +484,12 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         brushSize = size;
     }
 
+    fun setBrushColorForText(color: Int) {
+        brushColorForText = color
+        PaintForText.color = color
+        invalidate()
+    }
+
     fun setBrushColor(color: Int) {
         brushColor = color
     }
@@ -477,7 +504,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 //        val borderRect = Rect(0, 0, canvas.width, canvas.height)
 //        canvas.drawRect(borderRect, borderPaint)
 //    }
-    fun drawText(text: String,x: Float, y: Float) {
+    fun drawText(text: String, x: Float, y: Float) {
         userText = text
         textX = x
         textY = y
@@ -493,7 +520,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     fun setFont(path: String) {
         try {
             val typeface = Typeface.createFromAsset(context.assets, path)
-            mPaint.typeface = typeface
+            PaintForText.typeface = typeface
             invalidate()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -502,6 +529,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
 
     companion object {
+        const val DEFAULT_BRUSH_COLOR_FOR_TEXT: Int = Color.BLACK
         const val DEFAULT_BRUSH_SIZE: Int = 20
         const val DEFAULT_BRUSH_COLOR: Int = Color.BLACK
         const val DEFAULT_BG_COLOR: Int = Color.WHITE
