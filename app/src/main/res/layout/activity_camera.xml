@@ -183,7 +183,7 @@
         android:id="@+id/camera_capture_button"
         android:layout_width="@dimen/size_80dp"
         android:layout_height="@dimen/size_80dp"
-        android:layout_marginBottom="@dimen/size_50dp"
+        android:layout_marginBottom="@dimen/size_80dp"
         android:background="@drawable/camera"
         android:contentDescription="@null"
         android:elevation="@dimen/size_2dp"

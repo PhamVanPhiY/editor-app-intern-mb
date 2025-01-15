@@ -2,6 +2,7 @@
 <resources>
     <dimen name="size_1000dp">1000dp</dimen>
     <dimen name="size_600dp">600dp</dimen>
+    <dimen name="size_500dp">500dp</dimen>
     <dimen name="size_450dp">450dp</dimen>
     <dimen name="size_400dp">400dp</dimen>
     <dimen name="size_350dp">350dp</dimen>

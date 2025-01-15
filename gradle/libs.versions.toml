@@ -19,6 +19,7 @@ colorpicker = "2.3"
 
 
 
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -39,6 +40,7 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 drawingview = { group = "com.github.tolunaykan", name = "DrawingView-Library-Android", version.ref = "drawingview" }
 colorpicker = { group = "com.github.Dhaval2404", name = "ColorPicker", version.ref = "colorpicker" }
 removebg = "com.github.erenalpaslan:removebg:1.0.4"
+
 
 
 

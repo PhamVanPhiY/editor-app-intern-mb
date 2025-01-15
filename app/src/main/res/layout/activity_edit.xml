@@ -48,15 +48,15 @@
         android:background="@drawable/remove"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/lb_draw"
-        app:layout_constraintEnd_toStartOf="@+id/btn_album"
+        app:layout_constraintEnd_toStartOf="@+id/btn_hue"
         app:layout_constraintStart_toEndOf="@id/btn_redo"
         app:layout_constraintTop_toTopOf="@id/lb_draw" />
 
     <ImageView
-        android:id="@+id/btn_album"
+        android:id="@+id/btn_hue"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_25dp"
-        android:background="@drawable/gallery"
+        android:background="@drawable/hue"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/lb_draw"
         app:layout_constraintEnd_toStartOf="@id/btn_save"
@@ -71,7 +71,7 @@
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/lb_draw"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/btn_album"
+        app:layout_constraintStart_toEndOf="@id/btn_hue"
         app:layout_constraintTop_toTopOf="@id/lb_draw" />
 
     <View
@@ -80,12 +80,12 @@
         android:layout_height="@dimen/size_3dp"
         android:layout_marginTop="@dimen/size_10dp"
         android:background="@color/bg_button"
-        app:layout_constraintTop_toBottomOf="@+id/btn_album" />
+        app:layout_constraintTop_toBottomOf="@+id/btn_hue" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="@dimen/size_0dp"
-        android:background="@color/black"
+        android:background="@color/white"
         app:layout_constraintBottom_toTopOf="@+id/separator_bottom"
         app:layout_constraintTop_toBottomOf="@+id/separator_top">
 
@@ -308,5 +308,39 @@
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_edit_hue"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/size_100dp"
+        android:background="@color/black"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <ImageView
+            android:id="@+id/icon_hue"
+            android:layout_width="@dimen/size_25dp"
+            android:layout_height="@dimen/size_25dp"
+            android:layout_marginStart="@dimen/size_30dp"
+            android:background="@drawable/hue"
+            android:backgroundTint="@color/white"
+            android:contentDescription="@null"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <SeekBar
+            android:id="@+id/seekbar_hue"
+            android:layout_width="@dimen/size_250dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/size_30dp"
+            android:backgroundTint="@color/white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/icon_hue"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

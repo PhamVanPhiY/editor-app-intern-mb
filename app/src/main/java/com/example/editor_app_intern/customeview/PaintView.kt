@@ -9,6 +9,8 @@ import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.Typeface
 import android.util.AttributeSet
@@ -38,6 +40,9 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private var isDraggingTextBox = false
     private var initialTouchX = 0f
     private var initialTouchY = 0f
+    var isEraserEnabled: Boolean = false
+
+    var isEditingText = false
     private val mPaint = Paint().apply {
         isAntiAlias = true
         isDither = true
@@ -66,7 +71,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         backgroundColor = DEFAULT_BG_COLOR
         brushSize = DEFAULT_BRUSH_SIZE
         touchTolerance = DEFAULT_TOUCH_TOLERANCE
-        textSize = 50f
+        textSize = 40f
         try {
             typeface = Typeface.createFromAsset(context?.assets, "fonts/rubik_regular.ttf")
         } catch (e: Exception) {
@@ -74,14 +79,21 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
     }
 
+    private val erasePaint = Paint().apply {
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.SQUARE
+        strokeJoin = Paint.Join.MITER
+        isAntiAlias = true
+    }
 
     private val paths = ArrayList<DrawingPath>()
     private val undoPaths = ArrayList<DrawingPath>()
     private var brushColor: Int
     private var brushColorForText: Int
-    private var backgroundBitmap: Bitmap? = null
+    var backgroundBitmap: Bitmap? = null
     private val backgroundPaint = Paint().apply {
-        color = Color.BLACK
+        color = Color.WHITE
         style = Paint.Style.FILL
     }
     private var backgroundColor: Int
@@ -89,9 +101,9 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private var brushSize: Int = 10
     var touchTolerance: Float
     var canvasBitmap: Bitmap? = null
-    var userText: String? = null // Lưu văn bản người dùng nhập
-    private var textX = 200f // Vị trí X mặc định
-    private var textY = 200f // Vị trí Y mặc định
+    var userText: String? = null
+    private var textX = 200f
+    private var textY = 200f
 
     private val iconEditText: Bitmap =
         BitmapFactory.decodeResource(resources, R.drawable.edit)
@@ -117,10 +129,8 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private val scaledIconRotateText: Bitmap =
         Bitmap.createScaledBitmap(iconRotateText, iconWidth, iconHeight, true)
     private var mCanvas: Canvas? = null
-
-    //    var isDrawingEnabled = false
+    var isDrawingEnabled: Boolean = false
     private val mBitmapPaint = Paint().apply {
-        color = Color.BLACK
         textSize = 50f
         isAntiAlias = true
         style = Paint.Style.STROKE
@@ -147,7 +157,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                 outputBitmap?.let {
                     Log.d("PaintView", "Output Bitmap size: ${it.width} x ${it.height}")
                     withContext(Dispatchers.Main) {
-                        setBackgroundBitmap(it)
+                        updateBackgroundBitmap(it)
                         progressBar.visibility = View.GONE
                     }
                 }
@@ -157,7 +167,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
     fun undoRemoveBackground() {
         previousBackgroundBitmap?.let {
-            setBackgroundBitmap(it)
+            updateBackgroundBitmap(it)
             previousBackgroundBitmap = null
         }
     }
@@ -172,6 +182,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
     fun clearCanvas() {
         paths.clear()
+        userText = null
         invalidate()
     }
 
@@ -192,6 +203,15 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
 
         for (drawingPath in paths) {
+            if (isEraserEnabled) {
+                mCanvas!!.drawPath(drawingPath.path, erasePaint)
+            } else {
+                // Nếu không, vẽ bình thường
+                mPaint.color = drawingPath.color
+                mPaint.strokeWidth = drawingPath.strokeWidth.toFloat()
+                mPaint.style = Paint.Style.STROKE
+                mCanvas!!.drawPath(drawingPath.path, mPaint)
+            }
             mPaint.color = drawingPath.color
             mPaint.strokeWidth = drawingPath.strokeWidth.toFloat()
             mPaint.style = Paint.Style.STROKE
@@ -199,20 +219,15 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
 
 
+
         canvas.drawBitmap(canvasBitmap!!, 0f, 0f, mBitmapPaint)
 
         if (userText != null) {
-            canvas.drawText(userText!!, textX, textY, PaintForText) // Luôn vẽ văn bản
+            mCanvas!!.drawText(userText!!, textX, textY, PaintForText)
         }
         if (isTextBoxVisible) {
-            // Vẽ hình chữ nhật và các biểu tượng chỉ khi isTextBoxVisible là true
+            val boundingRect = calculateTextBoundingRect()
             userText?.let {
-                val textWidth = mPaint.measureText(it)
-                val textHeight = mPaint.textSize
-                val rectLeft = textX - 10
-                val rectTop = textY - textHeight - 10
-                val rectRight = textX + textWidth + 10
-                val rectBottom = textY + 10
 
                 val borderPaint = Paint().apply {
                     color = Color.WHITE
@@ -221,56 +236,81 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                     pathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f)
                 }
 
-                canvas.drawRect(rectLeft, rectTop, rectRight, rectBottom, borderPaint)
-                canvas.drawBitmap(
+                mCanvas!!.drawRect(boundingRect, borderPaint)
+                mCanvas!!.drawBitmap(
                     scaledIconDeleteText,
-                    rectLeft - scaledIconDeleteText.width / 2,
-                    rectTop - scaledIconDeleteText.height / 2,
-                    null
-                )
-                canvas.drawBitmap(
-                    scaledIconEditText,
-                    rectRight - scaledIconEditText.width / 2,
-                    rectTop - scaledIconEditText.height / 2,
-                    null
-                )
-                canvas.drawBitmap(
-                    scaledIconRotateText,
-                    rectLeft - scaledIconRotateText.width / 2,
-                    rectBottom - scaledIconRotateText.height / 2,
-                    null
-                )
-                canvas.drawBitmap(
-                    scaledIconScaleText,
-                    rectRight - scaledIconScaleText.width / 2,
-                    rectBottom - scaledIconScaleText.height / 2,
+                    null, // src Rect có thể là null nếu bạn muốn vẽ toàn bộ bitmap
+                    Rect(
+                        boundingRect.left - scaledIconDeleteText.width / 2,
+                        boundingRect.top - scaledIconDeleteText.height / 2,
+                        boundingRect.left - scaledIconDeleteText.width / 2 + scaledIconDeleteText.width,
+                        boundingRect.top - scaledIconDeleteText.height / 2 + scaledIconDeleteText.height
+                    ),
                     null
                 )
 
-                // Cập nhật các hình chữ nhật cho các biểu tượng
+                mCanvas!!.drawBitmap(
+                    scaledIconEditText,
+                    null,
+                    Rect(
+                        boundingRect.right - scaledIconEditText.width / 2,
+                        boundingRect.top - scaledIconEditText.height / 2,
+                        boundingRect.right - scaledIconEditText.width / 2 + scaledIconEditText.width,
+                        boundingRect.top - scaledIconEditText.height / 2 + scaledIconEditText.height
+                    ),
+                    null
+                )
+
+                mCanvas!!.drawBitmap(
+                    scaledIconRotateText,
+                    null,
+                    Rect(
+                        boundingRect.left - scaledIconRotateText.width / 2,
+                        boundingRect.bottom - scaledIconRotateText.height / 2,
+                        boundingRect.left - scaledIconRotateText.width / 2 + scaledIconRotateText.width,
+                        boundingRect.bottom - scaledIconRotateText.height / 2 + scaledIconRotateText.height
+                    ),
+                    null
+                )
+
+                mCanvas!!.drawBitmap(
+                    scaledIconScaleText,
+                    null,
+                    Rect(
+                        boundingRect.right - scaledIconScaleText.width / 2,
+                        boundingRect.bottom - scaledIconScaleText.height / 2,
+                        boundingRect.right - scaledIconScaleText.width / 2 + scaledIconScaleText.width,
+                        boundingRect.bottom - scaledIconScaleText.height / 2 + scaledIconScaleText.height
+                    ),
+                    null
+                )
+                val padding = 20
                 deleteIconRect.set(
-                    (rectLeft - scaledIconDeleteText.width / 2).toInt(),
-                    (rectTop - scaledIconDeleteText.height / 2).toInt(),
-                    (rectLeft - scaledIconDeleteText.width / 2 + scaledIconDeleteText.width).toInt(),
-                    (rectTop - scaledIconDeleteText.height / 2 + scaledIconDeleteText.height).toInt()
+                    (boundingRect.left - scaledIconDeleteText.width / 2 - padding).toInt(),
+                    (boundingRect.top - scaledIconDeleteText.height / 2 - padding).toInt(),
+                    (boundingRect.left - scaledIconDeleteText.width / 2 + scaledIconDeleteText.width + padding).toInt(),
+                    (boundingRect.top - scaledIconDeleteText.height / 2 + scaledIconDeleteText.height + padding).toInt()
                 )
+
                 editIconRect.set(
-                    (rectRight - scaledIconEditText.width / 2).toInt(),
-                    (rectTop - scaledIconEditText.height / 2).toInt(),
-                    (rectRight - scaledIconEditText.width / 2 + scaledIconEditText.width).toInt(),
-                    (rectTop - scaledIconEditText.height / 2 + scaledIconEditText.height).toInt()
+                    (boundingRect.right - scaledIconEditText.width / 2 - padding).toInt(),
+                    (boundingRect.top - scaledIconEditText.height / 2 - padding).toInt(),
+                    (boundingRect.right - scaledIconEditText.width / 2 + scaledIconEditText.width + padding).toInt(),
+                    (boundingRect.top - scaledIconEditText.height / 2 + scaledIconEditText.height + padding).toInt()
                 )
+
                 rotateIconRect.set(
-                    (rectLeft - scaledIconRotateText.width / 2).toInt(),
-                    (rectBottom - scaledIconRotateText.height / 2).toInt(),
-                    (rectLeft - scaledIconRotateText.width / 2 + scaledIconRotateText.width).toInt(),
-                    (rectBottom - scaledIconRotateText.height / 2 + scaledIconRotateText.height).toInt()
+                    (boundingRect.left - scaledIconRotateText.width / 2 - padding).toInt(),
+                    (boundingRect.bottom - scaledIconRotateText.height / 2 - padding).toInt(),
+                    (boundingRect.left - scaledIconRotateText.width / 2 + scaledIconRotateText.width + padding).toInt(),
+                    (boundingRect.bottom - scaledIconRotateText.height / 2 + scaledIconRotateText.height + padding).toInt()
                 )
+
                 scaleIconRect.set(
-                    (rectRight - scaledIconScaleText.width / 2).toInt(),
-                    (rectBottom - scaledIconScaleText.height / 2).toInt(),
-                    (rectRight - scaledIconScaleText.width / 2 + scaledIconScaleText.width).toInt(),
-                    (rectBottom - scaledIconScaleText.height / 2 + scaledIconScaleText.height).toInt()
+                    (boundingRect.right - scaledIconScaleText.width / 2 - padding).toInt(),
+                    (boundingRect.bottom - scaledIconScaleText.height / 2 - padding).toInt(),
+                    (boundingRect.right - scaledIconScaleText.width / 2 + scaledIconScaleText.width + padding).toInt(),
+                    (boundingRect.bottom - scaledIconScaleText.height / 2 + scaledIconScaleText.height + padding).toInt()
                 )
             }
         }
@@ -305,7 +345,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
     private fun touchMove(x: Float, y: Float) {
         if (mPath == null) {
-            return // Tránh thực hiện nếu mPath là null
+            return
         }
 
         val dx = abs((x - mX).toDouble()).toFloat()
@@ -327,10 +367,10 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
     }
 
-    private fun drawToCanvas(x: Float, y: Float) {
-        mPath!!.lineTo(x, y)
-        invalidate()
-    }
+//    private fun drawToCanvas(x: Float, y: Float) {
+//        mPath!!.lineTo(x, y)
+//        invalidate()
+//    }
 
     fun undoDrawing() {
         if (paths.size > 0) {
@@ -346,16 +386,16 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
     }
 
-    fun enableEraser() {
-        tempBrushColor = brushColor
-        brushColor = backgroundColor
-    }
-
-    fun disableEraser() {
-        if (tempBrushColor != 0) {
-            brushColor = tempBrushColor
-        }
-    }
+//    fun enableEraser() {
+//        tempBrushColor = brushColor
+//        brushColor = backgroundColor
+//    }
+//
+//    fun disableEraser() {
+//        if (tempBrushColor != 0) {
+//            brushColor = tempBrushColor
+//        }
+//    }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -364,18 +404,15 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-//                if (!isDrawingEnabled) {
-//                    return true
-//                }
-                // Kiểm tra nếu chạm vào vùng hình chữ nhật
+                // Kiểm tra nếu textbox đang hiển thị và có được chạm vào
                 if (isTextBoxVisible && isTextBoxTouched(x, y)) {
+                    activityContext.openEditSizeText()
+                    isEditingText = true
                     isDraggingTextBox = true
                     initialTouchX = x
                     initialTouchY = y
-                    activityContext.openEditSizeText()
-
                 } else {
-                    // Kiểm tra các biểu tượng
+                    // Kiểm tra các biểu tượng xóa và chỉnh sửa
                     if (deleteIconRect.contains(x.toInt(), y.toInt())) {
                         onDeleteIconClick()
                         return true
@@ -384,24 +421,28 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                         return true
                     }
 
-                    // Nếu không chạm vào hình chữ nhật, ẩn nó đi
+                    // Ẩn textbox nếu không chạm vào
                     if (isTextBoxVisible && !isTextTouched(x, y)) {
                         isTextBoxVisible = false
+                        activityContext.closeEditHue()
                         activityContext.closeEditSizeText()
-                        invalidate() // Chỉ làm mới lại để ẩn hình chữ nhật và các icon
-
+                        invalidate()
                         return true
-
                     }
 
-                    // Nếu không chạm vào văn bản, bắt đầu vẽ
-                    startTouch(x, y)
+                    // Nếu chế độ xóa được bật, bắt đầu xóa
+                    if (isEraserEnabled) {
+                        startTouch(x, y) // Bắt đầu xóa
+                    } else if (isDrawingEnabled) {
+                        startTouch(x, y) // Bắt đầu vẽ
+                    }
                 }
                 invalidate()
             }
 
             MotionEvent.ACTION_MOVE -> {
                 if (isDraggingTextBox) {
+                    // Di chuyển textbox
                     val dx = x - initialTouchX
                     val dy = y - initialTouchY
                     textX += dx
@@ -409,7 +450,12 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                     initialTouchX = x
                     initialTouchY = y
                 } else {
-                    touchMove(x, y)
+                    // Xóa hoặc vẽ dựa trên trạng thái
+                    if (isEraserEnabled) {
+                        touchMove(x, y) // Xóa
+                    } else if (isDrawingEnabled) {
+                        touchMove(x, y) // Vẽ
+                    }
                 }
                 invalidate()
             }
@@ -418,15 +464,21 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                 if (isDraggingTextBox) {
                     isDraggingTextBox = false
                 } else {
-                    touchUp()
+                    if (isEraserEnabled) {
+                        touchUp() // Kết thúc xóa
+                    } else if (isDrawingEnabled) {
+                        touchUp() // Kết thúc vẽ
+                    }
                 }
                 invalidate()
             }
         }
 
-        // Kiểm tra nếu chạm vào văn bản để hiển thị hình chữ nhật
+        // Kiểm tra xem textbox có không hiển thị và có chạm vào văn bản hay không
         if (!isTextBoxVisible && userText != null && isTextTouched(x, y)) {
             isTextBoxVisible = true
+            activityContext.openEditSizeText()
+            isEditingText = true
             invalidate()
         }
 
@@ -461,12 +513,14 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
 
     private fun onEditIconClick() {
+        activityContext.closeEditSizeText()
         userText?.let { activityContext.openInputTextEdit(it, textX, textY) }
     }
 
     private fun onDeleteIconClick() {
         userText = null
         activityContext.clearText()
+        activityContext.closeEditSizeText()
         invalidate()
     }
 
@@ -474,7 +528,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         drawingChangeListener = listener
     }
 
-    fun setBackgroundBitmap(bitmap: Bitmap) {
+    fun updateBackgroundBitmap(bitmap: Bitmap) {
         val scaledBitmap = Bitmap.createScaledBitmap(bitmap, width, height, true)
         backgroundBitmap = scaledBitmap
         invalidate()
@@ -482,6 +536,24 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
     fun setBrushSize(size: Int) {
         brushSize = size;
+    }
+
+    fun setSizeForText(size: Int) {
+        PaintForText.textSize = size.toFloat()
+        invalidate()
+    }
+
+    private fun calculateTextBoundingRect(): Rect {
+        if (userText == null || userText!!.isEmpty()) {
+            return Rect(0, 0, 0, 0)
+        }
+        val textWidth = PaintForText.measureText(userText)
+        val textHeight = PaintForText.textSize
+        val rectLeft = textX - 10
+        val rectTop = textY - textHeight - 10
+        val rectRight = textX + textWidth + 10
+        val rectBottom = textY + 10
+        return Rect(rectLeft.toInt(), rectTop.toInt(), rectRight.toInt(), rectBottom.toInt())
     }
 
     fun setBrushColorForText(color: Int) {
@@ -493,6 +565,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     fun setBrushColor(color: Int) {
         brushColor = color
     }
+
 
     //    fun drawBorder(canvas: Canvas) {
 //        val borderPaint = Paint().apply {
@@ -531,7 +604,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     companion object {
         const val DEFAULT_BRUSH_COLOR_FOR_TEXT: Int = Color.BLACK
         const val DEFAULT_BRUSH_SIZE: Int = 20
-        const val DEFAULT_BRUSH_COLOR: Int = Color.BLACK
+        const val DEFAULT_BRUSH_COLOR: Int = Color.WHITE
         const val DEFAULT_BG_COLOR: Int = Color.WHITE
         private const val DEFAULT_TOUCH_TOLERANCE = 4f
     }

@@ -3,14 +3,17 @@ package com.example.editor_app_intern.ui.edit
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.Typeface
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
@@ -18,6 +21,7 @@ import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import android.widget.ProgressBar
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
@@ -37,10 +41,21 @@ import com.example.editor_app_intern.adapter.FontAdapter
 import com.example.editor_app_intern.constant.Constants.PATH_IMAGE_INTENT
 import com.example.editor_app_intern.customeview.PaintView
 import com.example.editor_app_intern.databinding.ActivityEditBinding
+import com.example.editor_app_intern.dialog.NotificationDialog
+import com.example.editor_app_intern.dialog.OptionDialog
+import com.example.editor_app_intern.extension.atLeastVersionUpSideDownCake
+import com.example.editor_app_intern.helper.PermissionHelper.PERMISSIONS
 import com.example.editor_app_intern.model.FontItem
+import com.example.editor_app_intern.ui.ablum.AlbumActivity
 import com.github.dhaval2404.colorpicker.MaterialColorPickerDialog
 import com.github.dhaval2404.colorpicker.model.ColorShape
 import com.github.dhaval2404.colorpicker.model.ColorSwatch
+import jp.co.cyberagent.android.gpuimage.GPUImage
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageHueFilter
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 class EditActivity : AppCompatActivity() {
@@ -50,6 +65,9 @@ class EditActivity : AppCompatActivity() {
     private var textX: Float = 400f
     private var textY: Float = 600f
     var isDrawingEnabled = false
+    private var originalBitmap: Bitmap? = null
+    private lateinit var gpuImage: GPUImage
+    private lateinit var hueFilter: GPUImageHueFilter
     private lateinit var editViewModel: EditViewModel
     private lateinit var inputMethodManager: InputMethodManager
     private lateinit var permissionsRequestLauncher: ActivityResultLauncher<Array<String>>
@@ -75,12 +93,14 @@ class EditActivity : AppCompatActivity() {
             binding.rcvFont,
             insetsWithKeyboardAnimationCallback
         )
+        gpuImage = GPUImage(this)
+        hueFilter = GPUImageHueFilter(0f)
         inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         val imagePath = intent.getStringExtra(PATH_IMAGE_INTENT)
 
         progressBarRemoveBackground = binding.progressBar
         imagePath?.let {
-            val originalBitmap = BitmapFactory.decodeFile(it)
+            originalBitmap = BitmapFactory.decodeFile(it)
             binding.paintView.viewTreeObserver.addOnGlobalLayoutListener(object :
                 ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
@@ -91,13 +111,13 @@ class EditActivity : AppCompatActivity() {
                     if (paintViewWidth > 0 && paintViewHeight > 0) {
 
                         val scaledBitmap = Bitmap.createScaledBitmap(
-                            originalBitmap,
+                            originalBitmap!!,
                             paintViewWidth,
                             paintViewHeight,
                             true
                         )
 
-                        binding.paintView.setBackgroundBitmap(scaledBitmap)
+                        binding.paintView.updateBackgroundBitmap(scaledBitmap)
 
                         Log.d(
                             "EditActivity",
@@ -114,7 +134,7 @@ class EditActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-//        setUpLauncher()
+        setUpLauncher()
         setUpView()
         upLoadPhotoFromPhotoPicker()
     }
@@ -129,18 +149,14 @@ class EditActivity : AppCompatActivity() {
     private fun setUpView() {
         binding.apply {
             btnDraw.setOnClickListener {
-//                paintView.isDrawingEnabled = true
+                paintView.isDrawingEnabled = true
+                paintView.isEraserEnabled = false
                 paintView.startTouch(0f, 0f)
             }
 
             btnEraser.setOnClickListener {
-                if (isEraserEnabled) {
-                    paintView.disableEraser()
-                    isEraserEnabled = false
-                } else {
-                    paintView.enableEraser()
-                    isEraserEnabled = true
-                }
+                paintView.isEraserEnabled = true
+                paintView.isDrawingEnabled = false
             }
 
             btnUndo.setOnClickListener {
@@ -210,55 +226,69 @@ class EditActivity : AppCompatActivity() {
                 paintView.isTextBoxVisible = true
             }
 
+            seekbarSizeText.max = 100
+            seekbarSizeText.progress = 40
+            seekbarSizeText.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                @SuppressLint("SetTextI18n")
+                override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
+                    if (fromUser) {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            withContext(Dispatchers.IO) {
+                                paintView.setSizeForText(progress)
+                            }
+                            tvSizeText.text = progress.toString()
+                        }
+                    }
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    // Có thể không cần làm gì ở đây
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    // Có thể không cần làm gì ở đây
+                }
+            })
+
+            seekbarHue.max = 360
+            seekbarHue.progress = 180
+            seekbarHue.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                private var lastProgress = 180
+
+                @SuppressLint("SetTextI18n")
+                override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
+                    lastProgress = progress
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {
+
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        hueFilter.setHue(lastProgress.toFloat())
+                        applyHueFilter()
+                    }
+                }
+            })
 
 
             btnSave.setOnClickListener {
                 saveImage()
             }
 
-//            btnAlbum.setOnClickListener {
-//                if (hasStoragePermission()) {
-//                    startActivity(Intent(this@EditActivity, AlbumActivity::class.java))
-//                } else {
-//                    permissionsRequestLauncher.launch(PERMISSIONS)
-//                }
-//            }
+            btnHue.setOnClickListener {
+                openEditHue()
+            }
 
-//            lbDraw.setOnClickListener {
-//                movableEditText.visibility = View.VISIBLE
-//                movableEditText.requestFocus()
-//                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-//                imm.showSoftInput(movableEditText, InputMethodManager.SHOW_IMPLICIT)
-//
-//                movableEditText.setOnEditorActionListener { v, actionId, event ->
-//                    if (actionId == EditorInfo.IME_ACTION_DONE) {
-//                        val userText = movableEditText.text.toString()
-//                        paintView.updateTextFromEditText(userText) // Cập nhật văn bản cho PaintView
-//                        movableEditText.visibility = View.GONE // Ẩn EditText sau khi nhập xong
-//                        imm.hideSoftInputFromWindow(movableEditText.windowToken, 0) // Ẩn bàn phím
-//                        true
-//                    } else {
-//                        false
-//                    }
-//                }
-////            movableEditText.setOnTouchListener { v, event ->
-////                when (event.action) {
-////                    MotionEvent.ACTION_MOVE -> {
-////                        val x = event.rawX - v.width / 2
-////                        val y = event.rawY - v.height / 2
-////
-////                        val parent = paintView
-////                        val maxX = parent.width - v.width
-////                        val maxY = parent.height - v.height
-////
-////                        v.x = x.coerceIn(0f, maxX.toFloat())
-////                        v.y = y.coerceIn(0f, maxY.toFloat())
-////                    }
-////                }
-////                true
-////            }
-//
-//            }
         }
     }
 
@@ -289,70 +319,99 @@ class EditActivity : AppCompatActivity() {
             paintView.setFont(font.fontPath) // Gọi phương thức setFont
         }
     }
-//    private fun setUpLauncher() {
-//        permissionsRequestLauncher = registerForActivityResult(
-//            ActivityResultContracts.RequestMultiplePermissions()
-//        ) { permissions ->
-//            handlePermissionRequest(permissions)
-//        }
-//    }
 
-//    private fun hasStoragePermission(): Boolean {
-//        return atLeastVersionUpSideDownCake {
-//            PERMISSIONS.any {
-//                checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED
-//            }
-//        } ?: PERMISSIONS.all {
-//            checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED
-//        }
-//    }
+    private fun applyHueFilter() {
+        if (originalBitmap != null) {
+            CoroutineScope(Dispatchers.Default).launch {
+                gpuImage.setImage(originalBitmap)
+                gpuImage.setFilter(hueFilter)
+                val filteredBitmap = gpuImage.bitmapWithFilterApplied
 
-    //    private fun handlePermissionRequest(permissions: Map<String, Boolean>) {
-//        val granted = atLeastVersionUpSideDownCake {
-//            permissions.values.any { it }
-//        }?.let {
-//            permissions.values.all { it }
-//        } ?: false || hasStoragePermission()
-//
-//        if (granted)
-//            startActivity(Intent(this@EditActivity, AlbumActivity::class.java))
-//        else {
-//            when {
-//                PERMISSIONS.any {
-//                    shouldShowRequestPermissionRationale(it)
-//                } -> {
-//                    NotificationDialog(
-//                        title = getString(R.string.permission_required),
-//                        message = getString(R.string.storage_permission_is_required_to_access_images),
-//                        labelPositive = getString(R.string.ok),
-//                        onPositive = {
-//                            permissionsRequestLauncher.launch(PERMISSIONS)
-//                        }
-//                    ).show(supportFragmentManager, "PermissionDialog")
-//                }
-//
-//                PERMISSIONS.any {
-//                    !shouldShowRequestPermissionRationale(it)
-//                } -> {
-//                    OptionDialog(
-//                        title = getString(R.string.permission_required),
-//                        message = getString(R.string.permission_denied_permanently_dialog),
-//                        labelPositive = getString(R.string.ok),
-//                        labelNegative = getString(R.string.cancel),
-//                        onPositive = {
-//                            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-//                                data = Uri.fromParts("package", packageName, null)
-//                            })
-//                        },
-//                    ).show(supportFragmentManager, "PermissionDialog")
-//                }
-//
-//                else -> {
-//                    permissionsRequestLauncher.launch(PERMISSIONS)
-//                }
-//            }
-//        }
-//    }
+                withContext(Dispatchers.Main) {
+                    if (filteredBitmap != null && filteredBitmap.width > 0 && filteredBitmap.height > 0) {
+                        binding.paintView.backgroundBitmap = filteredBitmap
+                        binding.paintView.invalidate()
+                    } else {
+                        Log.e(
+                            "EditActivity",
+                            "Filtered Bitmap is either null or has invalid dimensions"
+                        )
+                        Toast.makeText(
+                            this@EditActivity,
+                            R.string.fail_to_apply_hue_filter,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun setUpLauncher() {
+        permissionsRequestLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            handlePermissionRequest(permissions)
+        }
+    }
+
+    private fun hasStoragePermission(): Boolean {
+        return atLeastVersionUpSideDownCake {
+            PERMISSIONS.any {
+                checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
+        } ?: PERMISSIONS.all {
+            checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun handlePermissionRequest(permissions: Map<String, Boolean>) {
+        val granted = atLeastVersionUpSideDownCake {
+            permissions.values.any { it }
+        }?.let {
+            permissions.values.all { it }
+        } ?: false || hasStoragePermission()
+
+        if (granted)
+            startActivity(Intent(this@EditActivity, AlbumActivity::class.java))
+        else {
+            when {
+                PERMISSIONS.any {
+                    shouldShowRequestPermissionRationale(it)
+                } -> {
+                    NotificationDialog(
+                        title = getString(R.string.permission_required),
+                        message = getString(R.string.storage_permission_is_required_to_access_images),
+                        labelPositive = getString(R.string.ok),
+                        onPositive = {
+                            permissionsRequestLauncher.launch(PERMISSIONS)
+                        }
+                    ).show(supportFragmentManager, "PermissionDialog")
+                }
+
+                PERMISSIONS.any {
+                    !shouldShowRequestPermissionRationale(it)
+                } -> {
+                    OptionDialog(
+                        title = getString(R.string.permission_required),
+                        message = getString(R.string.permission_denied_permanently_dialog),
+                        labelPositive = getString(R.string.ok),
+                        labelNegative = getString(R.string.cancel),
+                        onPositive = {
+                            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", packageName, null)
+                            })
+                        },
+                    ).show(supportFragmentManager, "PermissionDialog")
+                }
+
+                else -> {
+                    permissionsRequestLauncher.launch(PERMISSIONS)
+                }
+            }
+        }
+    }
+
     fun clearText() {
         binding.apply {
             tvInputText.text.clear()
@@ -369,6 +428,23 @@ class EditActivity : AppCompatActivity() {
             tvInputText.requestFocus()
             inputMethodManager.showSoftInput(tvInputText, InputMethodManager.SHOW_IMPLICIT)
             tvEnteredText.visibility = View.GONE
+        }
+    }
+
+    fun openEditHue() {
+        binding.apply {
+            val slideUpAnimation = AnimationUtils.loadAnimation(this@EditActivity, R.anim.slide_up)
+            layoutEditHue.visibility = ConstraintLayout.VISIBLE
+            layoutEditHue.startAnimation(slideUpAnimation)
+
+        }
+    }
+
+    fun closeEditHue() {
+        binding.apply {
+            val slideUpAnimation = AnimationUtils.loadAnimation(this@EditActivity, R.anim.slide_up)
+            layoutEditHue.visibility = ConstraintLayout.INVISIBLE
+            layoutEditHue.startAnimation(slideUpAnimation)
         }
     }
 
@@ -400,62 +476,63 @@ class EditActivity : AppCompatActivity() {
                 AnimationUtils.loadAnimation(this@EditActivity, R.anim.slide_down)
             layoutEditSizeText.visibility = ConstraintLayout.INVISIBLE
             layoutEditSizeText.startAnimation(slideDownAnimation)
+            paintView.isEditingText = false
         }
+
     }
 
     private fun saveImage() {
-        val bitmap = binding.paintView.canvasBitmap
-        val borderedBitmap = bitmap?.copy(Bitmap.Config.ARGB_8888, true)
-
-//        borderedBitmap?.let { bmp ->
-//            val canvas = Canvas(bmp)
-//            binding.paintView.drawBorder(canvas)
-//        }
-
-        val imageName = "edited_image_${System.currentTimeMillis()}.jpg"
-        val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-        } else {
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        }
-
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, imageName)
-            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-            put(MediaStore.Images.Media.WIDTH, borderedBitmap?.width)
-            put(MediaStore.Images.Media.HEIGHT, borderedBitmap?.height)
-            put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(
-                    MediaStore.Images.Media.RELATIVE_PATH, resources.getString(R.string.path)
-                )
+        binding.apply {
+            val bitmap = paintView.canvasBitmap
+            val imageName = "edited_image_${System.currentTimeMillis()}.jpg"
+            val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            } else {
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
             }
-        }
 
-        try {
-            contentResolver.insert(imageCollection, contentValues)?.let { uri ->
-                contentResolver.openOutputStream(uri).use { outputStream ->
-                    if (outputStream != null) {
-                        borderedBitmap?.compress(
-                            Bitmap.CompressFormat.JPEG, 100, outputStream
-                        )
-                        Toast.makeText(
-                            this@EditActivity, R.string.save_image_successfully, Toast.LENGTH_SHORT
-                        ).show()
-                    } else {
-                        throw IOException(resources.getString(R.string.exception_cant_open_output_stream))
-                    }
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, imageName)
+                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                put(MediaStore.Images.Media.WIDTH, bitmap?.width)
+                put(MediaStore.Images.Media.HEIGHT, bitmap?.height)
+                put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(
+                        MediaStore.Images.Media.RELATIVE_PATH, resources.getString(R.string.path)
+                    )
                 }
             }
-                ?: throw IOException(resources.getString(R.string.exception_cant_create_record_in_media_store))
-        } catch (e: IOException) {
-            e.printStackTrace()
-            Toast.makeText(
-                this@EditActivity,
-                resources.getString(R.string.fail_to_save_image),
-                Toast.LENGTH_SHORT
-            ).show()
+
+            try {
+                contentResolver.insert(imageCollection, contentValues)?.let { uri ->
+                    contentResolver.openOutputStream(uri).use { outputStream ->
+                        if (outputStream != null) {
+                            bitmap?.compress(
+                                Bitmap.CompressFormat.JPEG, 100, outputStream
+                            )
+                            Toast.makeText(
+                                this@EditActivity,
+                                R.string.save_image_successfully,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            throw IOException(resources.getString(R.string.exception_cant_open_output_stream))
+                        }
+                    }
+                }
+                    ?: throw IOException(resources.getString(R.string.exception_cant_create_record_in_media_store))
+            } catch (e: IOException) {
+                e.printStackTrace()
+                Toast.makeText(
+                    this@EditActivity,
+                    resources.getString(R.string.fail_to_save_image),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
         }
+
 
     }
 
@@ -480,7 +557,9 @@ class EditActivity : AppCompatActivity() {
                         val inputStream = contentResolver.openInputStream(uri)
                         val bitmap = BitmapFactory.decodeStream(inputStream)
                         binding.apply {
-                            paintView.setBackgroundBitmap(bitmap)
+                            paintView.clearCanvas()
+                            paintView.updateBackgroundBitmap(bitmap)
+
                         }
                         Log.d("EditActivity", "Bitmap size: ${bitmap.width} x ${bitmap.height}")
                     } catch (e: Exception) {

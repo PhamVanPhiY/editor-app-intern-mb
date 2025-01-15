@@ -39,4 +39,5 @@
     <string name="write_something">Write something</string>
     <string name="aa">Aa</string>
     <string name="size_default">40</string>
+    <string name="fail_to_apply_hue_filter">Lỗi khi áp dụng hiệu ứng Hue</string>
 </resources>

@@ -19,6 +19,7 @@ import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -344,24 +345,15 @@ class CameraActivity : AppCompatActivity() {
             } else {
                 CameraSelector.DEFAULT_BACK_CAMERA
             }
+
             imageCapture = ImageCapture.Builder().build()
 
             val imageAnalysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
 
-            imageAnalysis.setAnalyzer(cameraExecutor, ImageAnalysis.Analyzer {
-                var bitmap = allocateBitmapIfNecessary(it.width, it.height)
-                converter.yuvToRgb(it.image!!, bitmap)
-                it.close()
-                if (isFrontCamera) {
-                    val matrix = Matrix().apply { postScale(-1f, 1f) }
-                    bitmap =
-                        Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-                }
-                gpuImageView.post {
-                    gpuImageView.setImage(bitmap)
-                }
+            imageAnalysis.setAnalyzer(cameraExecutor, ImageAnalysis.Analyzer { imageProxy ->
+                processImage(imageProxy)
             })
 
             try {
@@ -372,6 +364,23 @@ class CameraActivity : AppCompatActivity() {
             }
 
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    @OptIn(ExperimentalGetImage::class)
+    private fun processImage(imageProxy: ImageProxy) {
+        CoroutineScope(Dispatchers.Default).launch {
+            val bitmap = allocateBitmapIfNecessary(imageProxy.width, imageProxy.height)
+            converter.yuvToRgb(imageProxy.image!!, bitmap)
+            val processedBitmap = if (isFrontCamera) {
+                createMirroredBitmap(bitmap)
+            } else {
+                bitmap
+            }
+            withContext(Dispatchers.Main) {
+                gpuImageView.setImage(processedBitmap)
+            }
+            imageProxy.close()
+        }
     }
 
     private fun allocateBitmapIfNecessary(width: Int, height: Int): Bitmap {
