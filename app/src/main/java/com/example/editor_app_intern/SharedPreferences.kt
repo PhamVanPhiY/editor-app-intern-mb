@@ -9,8 +9,8 @@ class SharedPreferences(context: Context) {
         context.getSharedPreferences("PREFS_NAME", Context.MODE_PRIVATE)
 
     companion object {
-        private const val PREFS_NAME = "CameraPrefs"
         private const val TIMER_KEY = "timer_value"
+        private const val IMAGE_PATH_KEY = "image_path"
     }
 
     fun saveTimerValue(timerValue: Long) {
@@ -23,5 +23,16 @@ class SharedPreferences(context: Context) {
 
     fun clearTimerValue() {
         sharedPreferences?.edit()?.remove(TIMER_KEY)?.apply()
+    }
+    fun saveImagePath(imagePath: String) {
+        sharedPreferences?.edit()?.putString(IMAGE_PATH_KEY, imagePath)?.apply()
+    }
+
+    fun getImagePath(): String? {
+        return sharedPreferences?.getString(IMAGE_PATH_KEY, null)
+    }
+
+    fun clearImagePath() {
+        sharedPreferences?.edit()?.remove(IMAGE_PATH_KEY)?.apply()
     }
 }

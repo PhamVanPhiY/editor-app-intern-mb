@@ -24,35 +24,36 @@
         android:theme="@style/Theme.EditorAppIntern"
         tools:targetApi="31">
         <activity
-            android:name=".ui.edit.EditActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustPan">
+            android:name=".ui.sticker.StickerActivity"
+            android:exported="false" />
 
-        </activity>
         <activity
-            android:name=".ui.camera.CameraActivity"
-            android:exported="true">
+            android:name=".ui.edit.EditActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.camera.CameraActivity"
+            android:exported="false" />
+
+
         <activity
             android:name=".ui.home.HomeActivity"
             android:exported="false" />
         <activity
             android:name=".ui.splash.SplashActivity"
             android:exported="false" />
-
         <activity
             android:name=".MainActivity"
             android:exported="false" />
         <activity
-            android:name="com.example.editor_app_intern.ui.ablum.AlbumActivity"
+            android:name=".ui.ablum.AlbumActivity"
             android:exported="false" />
-
     </application>
 
 </manifest>
-
-

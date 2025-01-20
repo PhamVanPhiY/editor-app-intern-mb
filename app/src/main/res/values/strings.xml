@@ -6,6 +6,7 @@
     <string name="filter">Filter</string>
     <string name="normal">Normal</string>
     <string name="image_saved">Take photo successfully</string>
+    <string name="image_save">Saved image successfully</string>
     <string name="time_5s">5s</string>
     <string name="time_3s">3s</string>
     <string name="time_7s">7s</string>
@@ -40,4 +41,5 @@
     <string name="aa">Aa</string>
     <string name="size_default">40</string>
     <string name="fail_to_apply_hue_filter">Lỗi khi áp dụng hiệu ứng Hue</string>
+    <string name="sticker">Sticker</string>
 </resources>

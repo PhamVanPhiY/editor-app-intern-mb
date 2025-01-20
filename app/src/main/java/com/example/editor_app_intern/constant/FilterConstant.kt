@@ -13,4 +13,5 @@ object Constants {
     const val FILTER_CROSS_HATCH = "Crosshatch"
     const val FILTER_GAMMA = "Gamma"
     const val  PATH_IMAGE_INTENT = "path_image"
+    const val PATH_STICKER = "sticker_path"
 }

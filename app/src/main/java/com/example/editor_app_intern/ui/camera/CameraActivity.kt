@@ -111,9 +111,11 @@ class CameraActivity : AppCompatActivity() {
         val filterAdapter = FilterCameraAdapter(filterList) { filterCamera ->
             applyFilter(filterCamera)
         }
-        binding.rcvFilterCamera.layoutManager =
-            LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
-        binding.rcvFilterCamera.adapter = filterAdapter
+        binding.apply {
+            rcvFilterCamera.layoutManager =
+                LinearLayoutManager(this@CameraActivity, RecyclerView.HORIZONTAL, false)
+            rcvFilterCamera.adapter = filterAdapter
+        }
     }
 
     private fun applyFilter(filterCamera: FilterCamera) {
@@ -300,6 +302,7 @@ class CameraActivity : AppCompatActivity() {
         withContext(Dispatchers.Main) {
             val intent = Intent(this@CameraActivity, EditActivity::class.java).apply {
                 putExtra(PATH_IMAGE_INTENT, imagePath)
+                preferences.saveImagePath(imagePath)
             }
             startActivity(intent)
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)

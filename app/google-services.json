@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "161860867440",
+    "firebase_url": "https://crud-midexam-c5e90-default-rtdb.firebaseio.com",
+    "project_id": "crud-midexam-c5e90",
+    "storage_bucket": "crud-midexam-c5e90.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:161860867440:android:b455c5e1689117c76debb5",
+        "android_client_info": {
+          "package_name": "com.example.crud"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUowqsyhKddcbmNk5oIDFMy97RnDnZdb8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:161860867440:android:05c74ad704d0c65e6debb5",
+        "android_client_info": {
+          "package_name": "com.example.editor_app_intern"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUowqsyhKddcbmNk5oIDFMy97RnDnZdb8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -7,13 +7,13 @@
     android:layout_height="match_parent"
     tools:context=".ui.edit.EditActivity">
 
-    <TextView
-        android:id="@+id/lb_draw"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <ImageView
+        android:id="@+id/btn_sticker"
+        android:layout_width="@dimen/size_25dp"
+        android:layout_height="@dimen/size_25dp"
         android:layout_marginTop="@dimen/size_10dp"
-        android:text="@string/draw"
-        android:textSize="@dimen/size_18sp"
+        android:background="@drawable/icon_sticker"
+        android:contentDescription="@null"
         app:layout_constraintEnd_toStartOf="@id/btn_undo"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -25,10 +25,10 @@
         android:layout_height="@dimen/size_25dp"
         android:background="@drawable/undo"
         android:contentDescription="@null"
-        app:layout_constraintBottom_toBottomOf="@id/lb_draw"
+        app:layout_constraintBottom_toBottomOf="@id/btn_sticker"
         app:layout_constraintEnd_toStartOf="@+id/btn_redo"
-        app:layout_constraintStart_toEndOf="@id/lb_draw"
-        app:layout_constraintTop_toTopOf="@id/lb_draw" />
+        app:layout_constraintStart_toEndOf="@id/btn_sticker"
+        app:layout_constraintTop_toTopOf="@id/btn_sticker" />
 
     <ImageView
         android:id="@+id/btn_redo"
@@ -36,10 +36,10 @@
         android:layout_height="@dimen/size_25dp"
         android:background="@drawable/redo"
         android:contentDescription="@null"
-        app:layout_constraintBottom_toBottomOf="@id/lb_draw"
+        app:layout_constraintBottom_toBottomOf="@id/btn_sticker"
         app:layout_constraintEnd_toStartOf="@+id/btn_remove_background"
         app:layout_constraintStart_toEndOf="@id/btn_undo"
-        app:layout_constraintTop_toTopOf="@id/lb_draw" />
+        app:layout_constraintTop_toTopOf="@id/btn_sticker" />
 
     <ImageView
         android:id="@+id/btn_remove_background"
@@ -47,10 +47,10 @@
         android:layout_height="@dimen/size_25dp"
         android:background="@drawable/remove"
         android:contentDescription="@null"
-        app:layout_constraintBottom_toBottomOf="@id/lb_draw"
+        app:layout_constraintBottom_toBottomOf="@id/btn_sticker"
         app:layout_constraintEnd_toStartOf="@+id/btn_hue"
         app:layout_constraintStart_toEndOf="@id/btn_redo"
-        app:layout_constraintTop_toTopOf="@id/lb_draw" />
+        app:layout_constraintTop_toTopOf="@id/btn_sticker" />
 
     <ImageView
         android:id="@+id/btn_hue"
@@ -58,10 +58,10 @@
         android:layout_height="@dimen/size_25dp"
         android:background="@drawable/hue"
         android:contentDescription="@null"
-        app:layout_constraintBottom_toBottomOf="@id/lb_draw"
+        app:layout_constraintBottom_toBottomOf="@id/btn_sticker"
         app:layout_constraintEnd_toStartOf="@id/btn_save"
         app:layout_constraintStart_toEndOf="@id/btn_remove_background"
-        app:layout_constraintTop_toTopOf="@id/lb_draw" />
+        app:layout_constraintTop_toTopOf="@id/btn_sticker" />
 
     <ImageView
         android:id="@+id/btn_save"
@@ -69,10 +69,10 @@
         android:layout_height="@dimen/size_25dp"
         android:background="@drawable/save"
         android:contentDescription="@null"
-        app:layout_constraintBottom_toBottomOf="@id/lb_draw"
+        app:layout_constraintBottom_toBottomOf="@id/btn_sticker"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/btn_hue"
-        app:layout_constraintTop_toTopOf="@id/lb_draw" />
+        app:layout_constraintTop_toTopOf="@id/btn_sticker" />
 
     <View
         android:id="@+id/separator_top"
@@ -85,7 +85,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="@dimen/size_0dp"
-        android:background="@color/white"
+        android:background="@color/bg_under_image"
         app:layout_constraintBottom_toTopOf="@+id/separator_bottom"
         app:layout_constraintTop_toBottomOf="@+id/separator_top">
 
@@ -146,6 +146,16 @@
         app:layout_constraintBottom_toBottomOf="@+id/btn_text"
         app:layout_constraintEnd_toStartOf="@+id/btn_eraser"
         app:layout_constraintStart_toEndOf="@+id/btn_text" />
+    <View
+        android:id="@+id/line_draw"
+        android:layout_width="@dimen/size_25dp"
+        android:layout_height="@dimen/size_2dp"
+        android:background="@android:color/holo_red_dark"
+        android:layout_marginTop="@dimen/size_2dp"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="@+id/btn_draw"
+        app:layout_constraintEnd_toEndOf="@+id/btn_draw"
+        app:layout_constraintTop_toBottomOf="@+id/btn_draw" />
 
     <ImageButton
         android:id="@+id/btn_eraser"
@@ -156,6 +166,17 @@
         app:layout_constraintBottom_toBottomOf="@id/btn_draw"
         app:layout_constraintEnd_toStartOf="@+id/btn_pick_color"
         app:layout_constraintStart_toEndOf="@id/btn_draw" />
+
+    <View
+        android:id="@+id/line_eraser"
+        android:layout_width="@dimen/size_25dp"
+        android:layout_height="@dimen/size_2dp"
+        android:background="@android:color/holo_red_dark"
+        android:layout_marginTop="@dimen/size_2dp"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="@+id/btn_eraser"
+        app:layout_constraintEnd_toEndOf="@+id/btn_eraser"
+        app:layout_constraintTop_toBottomOf="@+id/btn_eraser" />
 
     <ImageButton
         android:id="@+id/btn_pick_color"
@@ -340,7 +361,6 @@
             app:layout_constraintTop_toTopOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
