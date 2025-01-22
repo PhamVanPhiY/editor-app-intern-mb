@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.result.ResultActivity">
+
+    <ImageView
+        android:id="@+id/btn_close_app"
+        android:layout_width="@dimen/size_20dp"
+        android:layout_height="@dimen/size_20dp"
+        android:background="@drawable/close_app"
+        android:contentDescription="@null"
+        app:layout_constraintBottom_toBottomOf="@id/btn_saved_text"
+        app:layout_constraintEnd_toStartOf="@id/btn_saved_text"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/btn_saved_text" />
+
+    <TextView
+        android:id="@+id/btn_saved_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/size_15dp"
+        android:fontFamily="@font/poppins_bold"
+        android:text="@string/saved_project"
+        android:textSize="@dimen/size_16sp"
+        app:layout_constraintEnd_toStartOf="@id/btn_camera"
+        app:layout_constraintStart_toEndOf="@id/btn_close_app"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:layout_marginStart="@dimen/size_30dp"
+        android:id="@+id/btn_camera"
+        android:layout_width="@dimen/size_25dp"
+        android:layout_height="@dimen/size_25dp"
+        android:background="@drawable/camera"
+        android:contentDescription="@null"
+        app:layout_constraintBottom_toBottomOf="@id/btn_saved_text"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btn_saved_text"
+        app:layout_constraintTop_toTopOf="@id/btn_saved_text" />
+
+    <ImageView
+        android:id="@+id/iv_result"
+        android:layout_width="@dimen/size_350dp"
+        android:layout_height="@dimen/size_500dp"
+        android:layout_marginTop="@dimen/size_50dp"
+        android:contentDescription="@null"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_saved_text" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_edit_again"
+        android:layout_width="@dimen/size_350dp"
+        android:layout_height="@dimen/size_50dp"
+        android:layout_marginTop="@dimen/size_25dp"
+        android:background="@drawable/background_button_try_it_now"
+        android:fontFamily="@font/poppins_medium"
+        android:text="@string/edit_again"
+        android:textAllCaps="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/iv_result" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

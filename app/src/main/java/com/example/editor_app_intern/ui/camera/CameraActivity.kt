@@ -88,7 +88,6 @@ class CameraActivity : AppCompatActivity() {
         setContentView(binding.root)
         preferences = SharedPreferences(this)
         countdownTimeInMillis = preferences.getTimerValue()
-        Log.d("countdownTimeInMillis", countdownTimeInMillis.toString())
         if (countdownTimeInMillis > 0) {
             binding.timerHeader.visibility = View.VISIBLE
             val timerSecond = countdownTimeInMillis / 1000
@@ -184,7 +183,11 @@ class CameraActivity : AppCompatActivity() {
                     enableTimer(10)
                 }
                 btnTurnOffTimer.setOnClickListener {
-                    binding.timerHeader.visibility = View.GONE
+                    binding.timerHeader.visibility = View.INVISIBLE
+                    countdownTimeInMillis = 0
+                    countdownTimer?.cancel()
+                    preferences.clearTimerValue()
+                    toggleTimeVisibility()
                 }
             }
 
@@ -211,7 +214,7 @@ class CameraActivity : AppCompatActivity() {
 
     private fun toggleFilterVisibility() {
         isFilterVisible = !isFilterVisible
-        binding.rcvFilterCamera.visibility = if (isFilterVisible) View.VISIBLE else View.GONE
+        binding.rcvFilterCamera.visibility = if (isFilterVisible) View.VISIBLE else View.INVISIBLE
     }
 
     private fun takePhoto() {
@@ -237,7 +240,11 @@ class CameraActivity : AppCompatActivity() {
             ContextCompat.getMainExecutor(this),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onError(exc: ImageCaptureException) {
-                    Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
+                    Log.e(
+                        "countdownTimeInMillis 1112233",
+                        "Photo capture failed: ${exc.message}",
+                        exc
+                    )
                 }
 
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
@@ -276,7 +283,7 @@ class CameraActivity : AppCompatActivity() {
         if (bitmap != null) {
             try {
                 val finalBitmap = if (isFrontCamera) {
-                    createMirroredBitmap(bitmap)
+                    bitmap
                 } else {
                     bitmap
                 }
@@ -401,7 +408,9 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun createMirroredBitmap(originalBitmap: Bitmap): Bitmap {
-        val matrix = Matrix().apply { postScale(-1f, 1f) }
+        val matrix = Matrix().apply {
+            postScale(-1f, 1f)
+        }
         return Bitmap.createBitmap(
             originalBitmap,
             0,
@@ -414,7 +423,7 @@ class CameraActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        preferences.clearTimerValue()
+        // preferences.clearTimerValue()
         countdownTimer?.cancel()
         super.onDestroy()
         cameraExecutor.shutdown()

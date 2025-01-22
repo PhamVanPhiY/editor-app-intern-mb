@@ -23,7 +23,7 @@
         android:id="@+id/btn_undo"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_25dp"
-        android:background="@drawable/undo"
+        android:background="@drawable/undo_icon_main"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/btn_sticker"
         app:layout_constraintEnd_toStartOf="@+id/btn_redo"
@@ -34,7 +34,7 @@
         android:id="@+id/btn_redo"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_25dp"
-        android:background="@drawable/redo"
+        android:background="@drawable/redo_icon_main"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/btn_sticker"
         app:layout_constraintEnd_toStartOf="@+id/btn_remove_background"
@@ -67,7 +67,7 @@
         android:id="@+id/btn_save"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_25dp"
-        android:background="@drawable/save"
+        android:background="@drawable/download_image_icon"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/btn_sticker"
         app:layout_constraintEnd_toEndOf="parent"
@@ -91,8 +91,8 @@
 
         <com.example.editor_app_intern.customeview.PaintView
             android:id="@+id/paintView"
-            android:layout_width="@dimen/size_350dp"
-            android:layout_height="@dimen/size_600dp"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -141,52 +141,32 @@
         android:id="@+id/btn_draw"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_25dp"
-        android:background="@drawable/pencil"
+        android:background="@drawable/pen"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@+id/btn_text"
-        app:layout_constraintEnd_toStartOf="@+id/btn_eraser"
+        app:layout_constraintEnd_toStartOf="@+id/btn_pick_color"
         app:layout_constraintStart_toEndOf="@+id/btn_text" />
+
     <View
         android:id="@+id/line_draw"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_2dp"
-        android:background="@android:color/holo_red_dark"
         android:layout_marginTop="@dimen/size_2dp"
+        android:background="@android:color/holo_red_dark"
         android:visibility="gone"
-        app:layout_constraintStart_toStartOf="@+id/btn_draw"
         app:layout_constraintEnd_toEndOf="@+id/btn_draw"
+        app:layout_constraintStart_toStartOf="@+id/btn_draw"
         app:layout_constraintTop_toBottomOf="@+id/btn_draw" />
-
-    <ImageButton
-        android:id="@+id/btn_eraser"
-        android:layout_width="@dimen/size_25dp"
-        android:layout_height="@dimen/size_25dp"
-        android:background="@drawable/eraser"
-        android:contentDescription="@null"
-        app:layout_constraintBottom_toBottomOf="@id/btn_draw"
-        app:layout_constraintEnd_toStartOf="@+id/btn_pick_color"
-        app:layout_constraintStart_toEndOf="@id/btn_draw" />
-
-    <View
-        android:id="@+id/line_eraser"
-        android:layout_width="@dimen/size_25dp"
-        android:layout_height="@dimen/size_2dp"
-        android:background="@android:color/holo_red_dark"
-        android:layout_marginTop="@dimen/size_2dp"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="@+id/btn_eraser"
-        app:layout_constraintEnd_toEndOf="@+id/btn_eraser"
-        app:layout_constraintTop_toBottomOf="@+id/btn_eraser" />
 
     <ImageButton
         android:id="@+id/btn_pick_color"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_25dp"
-        android:background="@drawable/picker"
+        android:background="@drawable/color_picker"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/btn_draw"
         app:layout_constraintEnd_toStartOf="@+id/btn_color_picked"
-        app:layout_constraintStart_toEndOf="@id/btn_eraser" />
+        app:layout_constraintStart_toEndOf="@id/btn_draw" />
 
     <ImageButton
         android:id="@+id/btn_color_picked"
@@ -202,7 +182,7 @@
         android:id="@+id/btn_select_image"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_25dp"
-        android:background="@drawable/image"
+        android:background="@drawable/image_gallery"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/btn_draw"
         app:layout_constraintEnd_toEndOf="parent"

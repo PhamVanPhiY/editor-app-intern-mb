@@ -9,7 +9,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.editor_app_intern.R
 import com.example.editor_app_intern.databinding.ActivitySplashBinding
-import com.example.editor_app_intern.ui.home.HomeActivity
+import com.example.editor_app_intern.ui.camera.CameraActivity
 
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
@@ -30,7 +30,7 @@ class SplashActivity : AppCompatActivity() {
     private fun setUpView() {
         binding.apply {
             btnTryNow.setOnClickListener {
-                startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
+                startActivity(Intent(this@SplashActivity, CameraActivity::class.java))
             }
         }
     }

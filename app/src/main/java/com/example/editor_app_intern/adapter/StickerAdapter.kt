@@ -9,21 +9,26 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.editor_app_intern.R
-import com.example.editor_app_intern.constant.Constants.PATH_STICKER
+import com.example.editor_app_intern.SharedPreferences
 import com.example.editor_app_intern.databinding.StickerItemLayoutBinding
 import com.example.editor_app_intern.model.Sticker
+import com.example.editor_app_intern.model.StickerCountManager
+import com.example.editor_app_intern.model.StickerLocal
 import com.example.editor_app_intern.ui.edit.EditActivity
 import com.google.android.gms.tasks.OnSuccessListener
 import com.google.firebase.storage.FirebaseStorage
 import java.io.File
+import java.util.UUID
 
 
 class StickerAdapter(
     var stickerList: List<Sticker>, private val onStickerClick: (Sticker) -> Unit
 ) : RecyclerView.Adapter<StickerAdapter.StickerViewHolder>() {
-
+    private var stickerCount = 0
     inner class StickerViewHolder(val binding: StickerItemLayoutBinding) :
         RecyclerView.ViewHolder(binding.root) {
+
+
         @SuppressLint("ResourceType")
         fun bind(item: Sticker) {
             binding.apply {
@@ -39,7 +44,20 @@ class StickerAdapter(
                             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
                             "${item.name}.png"
                         )
-                        intent.putExtra(PATH_STICKER, localFile.absolutePath)
+                        val stickerLocal = StickerLocal(
+                            id = UUID.randomUUID().toString(),
+                            path = localFile.absolutePath,
+                            widthSticker = 200f,
+                            heightSticker = 200f,
+                            x = 100f,
+                            y = (100f + StickerCountManager.count * 220f),
+                            false
+                        )
+
+
+                        val sharedPrefs = SharedPreferences(binding.root.context)
+                        sharedPrefs.saveSticker(stickerLocal)
+                        StickerCountManager.count++
                         context.startActivity(intent)
                     }
                 } else {

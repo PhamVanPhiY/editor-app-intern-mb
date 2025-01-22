@@ -1,5 +1,6 @@
 package com.example.editor_app_intern.customeview
 
+
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
@@ -19,6 +20,9 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.ProgressBar
 import com.example.editor_app_intern.R
+import com.example.editor_app_intern.SharedPreferences
+import com.example.editor_app_intern.model.StickerLocal
+import com.example.editor_app_intern.model.TextItem
 import com.example.editor_app_intern.ui.edit.EditActivity
 import dev.eren.removebg.RemoveBg
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +41,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         pathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f)
     }
 
-    private val PaintForText = Paint().apply {
+    val PaintForText = Paint().apply {
         isAntiAlias = true
         isDither = true
         color = DEFAULT_BRUSH_COLOR_FOR_TEXT
@@ -93,8 +97,11 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private val remover = context?.let { RemoveBg(it) }
     private var mX = 0f
     private var mY = 0f
+    private var selectedTextItem: TextItem? = null
+    private var selectedStickerItem: StickerLocal? = null
+    private val textItems = mutableListOf<TextItem>()
+    val stickerItems = mutableListOf<StickerLocal>()
     private var previousBackgroundBitmap: Bitmap? = null
-    private var borderColor: Int = Color.BLACK
     private var mPath: Path? = null
     var isTextBoxVisible = true
     var isStickerTextBoxVisible = true
@@ -103,12 +110,9 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private var initialTouchX = 0f
     private var initialTouchY = 0f
     private var initialTouchStickerX = 0f
+    private  var preferences: SharedPreferences
     private var initialTouchStickerY = 0f
     private var isScalingSticker = false
-    private var stickerWidth: Float = 200f
-    private var stickerHeight: Float = 200f
-    private var rectWidth: Float = stickerWidth
-    private var rectHeight: Float = stickerHeight
     var isEraserEnabled: Boolean = false
     var isEditingText = false
     private val paths = ArrayList<DrawingPath>()
@@ -125,10 +129,6 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     var pathSticker: String? = null
     private var textX = 200f
     private var textY = 200f
-
-    private var textXSticker = 100f
-    private var textYSticker = 100f
-
     private val iconEditText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.edit)
     private val iconDeleteText: Bitmap =
         BitmapFactory.decodeResource(resources, R.drawable.remove_text)
@@ -147,7 +147,6 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private val rotateIconRect = Rect()
     private val scaleIconRect = Rect()
     private val scaleIconRectSticker = Rect()
-
 
     private val scaledIconEditText: Bitmap =
         Bitmap.createScaledBitmap(iconEditText, iconWidth, iconHeight, true)
@@ -168,10 +167,10 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         isAntiAlias = true
         style = Paint.Style.STROKE
     }
-    private var drawingChangeListener: DrawingChangeListener? = null
-    private var tempBrushColor = 0
-    var drawText: String? = null
 
+    init {
+        preferences = SharedPreferences(context!!)
+    }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -179,9 +178,6 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         mCanvas = Canvas(canvasBitmap!!)
     }
 
-    fun enableDrawing(enable: Boolean) {
-        isDrawingEnabled = enable
-    }
 
     fun removeBackground(inputBitmap: Bitmap, progressBar: ProgressBar) {
         previousBackgroundBitmap = backgroundBitmap?.copy(Bitmap.Config.ARGB_8888, true)
@@ -209,9 +205,6 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         backgroundColor = color
     }
 
-    fun getBackgroundColor(): Int {
-        return backgroundColor
-    }
 
     fun clearCanvas() {
         paths.clear()
@@ -248,133 +241,93 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
         canvas.drawBitmap(canvasBitmap!!, 0f, 0f, mBitmapPaint)
 
-        if (userText != null) {
-            mCanvas!!.drawText(userText!!, textX, textY, PaintForText)
+        if (textItems.isNotEmpty()) {
+            for (textItem in textItems) {
+                Log.d("List sticker:", "List text : $textItems")
+                val boundingRect: Rect
+                if (textItem == selectedTextItem && isTextBoxVisible) {
+                    Log.d("PaintView", "selectedTextItem: ${selectedTextItem!!.text}")
+                    boundingRect = calculateTextBoundingRect(selectedTextItem!!)
+                    mCanvas!!.drawRect(boundingRect, borderPaint)
+                    drawTextIcons(
+                        boundingRect.left.toFloat(),
+                        boundingRect.top.toFloat(),
+                        boundingRect.right.toFloat(),
+                        boundingRect.bottom.toFloat()
+                    )
+                } else {
+                    boundingRect = calculateTextBoundingRect(textItem)
+                }
+
+                PaintForText.apply {
+                    textSize = textItem.size
+                    color = textItem.color
+                    typeface = Typeface.createFromAsset(context.assets, textItem.fontPath)
+                }
+
+                val textWidth = PaintForText.measureText(textItem.text)
+                val textHeight = textItem.size
+                val textX = boundingRect.left + (boundingRect.width() - textWidth) / 2
+                val textY = boundingRect.top + (boundingRect.height() + textHeight) / 2 - 10
+                mCanvas!!.drawText(textItem.text, textX, textY, PaintForText)
+            }
         }
-        if (pathSticker != null) {
-            val bitmapFromPath = BitmapFactory.decodeFile(pathSticker)
+
+        for (sticker in stickerItems) {
+            Log.d("List sticker:", "List sticker : $stickerItems")
+            val bitmapFromPath = BitmapFactory.decodeFile(sticker.path)
             if (bitmapFromPath != null) {
                 val scaledBitmap = Bitmap.createScaledBitmap(
                     bitmapFromPath,
-                    stickerWidth.toInt(),
-                    stickerHeight.toInt(),
+                    sticker.widthSticker.toInt(),
+                    sticker.heightSticker.toInt(),
                     true
                 )
-                mCanvas!!.drawBitmap(scaledBitmap, textXSticker, textYSticker, paintImage)
-
-                if (isStickerTextBoxVisible) {
+                mCanvas!!.drawBitmap(scaledBitmap, sticker.x, sticker.y, paintImage)
+                if (sticker.isSelected && isStickerTextBoxVisible) {
                     val stickerRect =
-                        calculateStickerBoundingRect(scaledBitmap, textXSticker, textYSticker)
+                        calculateStickerBoundingRect(scaledBitmap, sticker.x, sticker.y)
                     mCanvas!!.drawRect(stickerRect, borderPaint)
-
-                    // Vẽ các icon
+                    val iconSize = 10f
                     val padding = 20
+
                     deleteIconRectSticker.set(
-                        (stickerRect.left - scaledIconDeleteSticker.width / 2 - padding).toInt(),
-                        (stickerRect.top - scaledIconDeleteSticker.height / 2 - padding).toInt(),
-                        (stickerRect.left - scaledIconDeleteSticker.width / 2 + scaledIconDeleteSticker.width + padding).toInt(),
-                        (stickerRect.top - scaledIconDeleteSticker.height / 2 + scaledIconDeleteSticker.height + padding).toInt()
+                        (stickerRect.left - iconSize / 2 - padding).toInt(),
+                        (stickerRect.top - iconSize / 2 - padding).toInt(),
+                        (stickerRect.left - iconSize / 2 + iconSize + padding).toInt(),
+                        (stickerRect.top - iconSize / 2 + iconSize + padding).toInt()
                     )
-                    mCanvas!!.drawBitmap(scaledIconDeleteSticker, null, deleteIconRectSticker, null)
+                    mCanvas!!.drawBitmap(scaledIconDeleteText, null, deleteIconRectSticker, null)
 
                     editIconRect.set(
-                        (stickerRect.right - scaledIconEditText.width / 2 - padding).toInt(),
-                        (stickerRect.top - scaledIconEditText.height / 2 - padding).toInt(),
-                        (stickerRect.right - scaledIconEditText.width / 2 + scaledIconEditText.width + padding).toInt(),
-                        (stickerRect.top - scaledIconEditText.height / 2 + scaledIconEditText.height + padding).toInt()
+                        (stickerRect.right - iconSize / 2 - padding).toInt(),
+                        (stickerRect.top - iconSize / 2 - padding).toInt(),
+                        (stickerRect.right - iconSize / 2 + iconSize + padding).toInt(),
+                        (stickerRect.top - iconSize / 2 + iconSize + padding).toInt()
                     )
                     mCanvas!!.drawBitmap(scaledIconEditText, null, editIconRect, null)
 
                     rotateIconRect.set(
-                        (stickerRect.left - scaledIconRotateText.width / 2 - padding).toInt(),
-                        (stickerRect.bottom - scaledIconRotateText.height / 2 - padding).toInt(),
-                        (stickerRect.left - scaledIconRotateText.width / 2 + scaledIconRotateText.width + padding).toInt(),
-                        (stickerRect.bottom - scaledIconRotateText.height / 2 + scaledIconRotateText.height + padding).toInt()
+                        (stickerRect.left - iconSize / 2 - padding).toInt(),
+                        (stickerRect.bottom - iconSize / 2 - padding).toInt(),
+                        (stickerRect.left - iconSize / 2 + iconSize + padding).toInt(),
+                        (stickerRect.bottom - iconSize / 2 + iconSize + padding).toInt()
                     )
                     mCanvas!!.drawBitmap(scaledIconRotateText, null, rotateIconRect, null)
 
                     scaleIconRectSticker.set(
-                        (stickerRect.right - scaledIconScaleSticker.width / 2 - padding).toInt(),
-                        (stickerRect.bottom - scaledIconScaleSticker.height / 2 - padding).toInt(),
-                        (stickerRect.right - scaledIconScaleSticker.width / 2 + scaledIconScaleSticker.width + padding).toInt(),
-                        (stickerRect.bottom - scaledIconScaleSticker.height / 2 + scaledIconScaleSticker.height + padding).toInt()
+                        (stickerRect.right - iconSize / 2 - padding).toInt(),
+                        (stickerRect.bottom - iconSize / 2 - padding).toInt(),
+                        (stickerRect.right - iconSize / 2 + iconSize + padding).toInt(),
+                        (stickerRect.bottom - iconSize / 2 + iconSize + padding).toInt()
                     )
-                    mCanvas!!.drawBitmap(scaledIconScaleSticker, null, scaleIconRectSticker, null)
+                    mCanvas!!.drawBitmap(scaledIconScaleText, null, scaleIconRectSticker, null)
                 }
             } else {
-                Log.e("BitmapLoading", "Bitmap is null for path: $pathSticker")
+                Log.e("BitmapLoading", "Bitmap is null for path: ${sticker.path}")
             }
         }
 
-        if (isTextBoxVisible) {
-            val boundingRect = calculateTextBoundingRect()
-            userText?.let {
-                mCanvas!!.drawRect(boundingRect, borderPaint)
-                mCanvas!!.drawBitmap(
-                    scaledIconDeleteText, null, Rect(
-                        boundingRect.left - scaledIconDeleteText.width / 2,
-                        boundingRect.top - scaledIconDeleteText.height / 2,
-                        boundingRect.left - scaledIconDeleteText.width / 2 + scaledIconDeleteText.width,
-                        boundingRect.top - scaledIconDeleteText.height / 2 + scaledIconDeleteText.height
-                    ), null
-                )
-
-                mCanvas!!.drawBitmap(
-                    scaledIconEditText, null, Rect(
-                        boundingRect.right - scaledIconEditText.width / 2,
-                        boundingRect.top - scaledIconEditText.height / 2,
-                        boundingRect.right - scaledIconEditText.width / 2 + scaledIconEditText.width,
-                        boundingRect.top - scaledIconEditText.height / 2 + scaledIconEditText.height
-                    ), null
-                )
-
-                mCanvas!!.drawBitmap(
-                    scaledIconRotateText, null, Rect(
-                        boundingRect.left - scaledIconRotateText.width / 2,
-                        boundingRect.bottom - scaledIconRotateText.height / 2,
-                        boundingRect.left - scaledIconRotateText.width / 2 + scaledIconRotateText.width,
-                        boundingRect.bottom - scaledIconRotateText.height / 2 + scaledIconRotateText.height
-                    ), null
-                )
-
-                mCanvas!!.drawBitmap(
-                    scaledIconScaleText, null, Rect(
-                        boundingRect.right - scaledIconScaleText.width / 2,
-                        boundingRect.bottom - scaledIconScaleText.height / 2,
-                        boundingRect.right - scaledIconScaleText.width / 2 + scaledIconScaleText.width,
-                        boundingRect.bottom - scaledIconScaleText.height / 2 + scaledIconScaleText.height
-                    ), null
-                )
-                val padding = 20
-                deleteIconRect.set(
-                    (boundingRect.left - scaledIconDeleteText.width / 2 - padding).toInt(),
-                    (boundingRect.top - scaledIconDeleteText.height / 2 - padding).toInt(),
-                    (boundingRect.left - scaledIconDeleteText.width / 2 + scaledIconDeleteText.width + padding).toInt(),
-                    (boundingRect.top - scaledIconDeleteText.height / 2 + scaledIconDeleteText.height + padding).toInt()
-                )
-
-                editIconRect.set(
-                    (boundingRect.right - scaledIconEditText.width / 2 - padding).toInt(),
-                    (boundingRect.top - scaledIconEditText.height / 2 - padding).toInt(),
-                    (boundingRect.right - scaledIconEditText.width / 2 + scaledIconEditText.width + padding).toInt(),
-                    (boundingRect.top - scaledIconEditText.height / 2 + scaledIconEditText.height + padding).toInt()
-                )
-
-                rotateIconRect.set(
-                    (boundingRect.left - scaledIconRotateText.width / 2 - padding).toInt(),
-                    (boundingRect.bottom - scaledIconRotateText.height / 2 - padding).toInt(),
-                    (boundingRect.left - scaledIconRotateText.width / 2 + scaledIconRotateText.width + padding).toInt(),
-                    (boundingRect.bottom - scaledIconRotateText.height / 2 + scaledIconRotateText.height + padding).toInt()
-                )
-
-                scaleIconRect.set(
-                    (boundingRect.right - scaledIconScaleText.width / 2 - padding).toInt(),
-                    (boundingRect.bottom - scaledIconScaleText.height / 2 - padding).toInt(),
-                    (boundingRect.right - scaledIconScaleText.width / 2 + scaledIconScaleText.width + padding).toInt(),
-                    (boundingRect.bottom - scaledIconScaleText.height / 2 + scaledIconScaleText.height + padding).toInt()
-                )
-            }
-        }
         canvas.restore()
 
     }
@@ -394,6 +347,43 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         mX = x
         mY = y
         invalidate()
+    }
+
+    private fun drawTextIcons(
+        rectLeft: Float, rectTop: Float, rectRight: Float, rectBottom: Float
+    ) {
+        val iconSize = 40f
+        deleteIconRect.set(
+            (rectLeft - iconSize / 2).toInt(),
+            (rectTop - iconSize / 2).toInt(),
+            (rectLeft + iconSize / 2).toInt(),
+            (rectTop + iconSize / 2).toInt()
+        )
+        mCanvas!!.drawBitmap(scaledIconDeleteText, null, deleteIconRect, null)
+
+        editIconRect.set(
+            (rectRight - iconSize / 2).toInt(),
+            (rectTop - iconSize / 2).toInt(),
+            (rectRight + iconSize / 2).toInt(),
+            (rectTop + iconSize / 2).toInt()
+        )
+        mCanvas!!.drawBitmap(scaledIconEditText, null, editIconRect, null)
+
+        rotateIconRect.set(
+            (rectLeft - iconSize / 2).toInt(),
+            (rectBottom - iconSize / 2).toInt(),
+            (rectLeft + iconSize / 2).toInt(),
+            (rectBottom + iconSize / 2).toInt()
+        )
+        mCanvas!!.drawBitmap(scaledIconRotateText, null, rotateIconRect, null)
+
+        scaleIconRect.set(
+            (rectRight - iconSize / 2).toInt(),
+            (rectBottom - iconSize / 2).toInt(),
+            (rectRight + iconSize / 2).toInt(),
+            (rectBottom + iconSize / 2).toInt()
+        )
+        mCanvas!!.drawBitmap(scaledIconScaleText, null, scaleIconRect, null)
     }
 
     private fun touchMove(x: Float, y: Float) {
@@ -435,10 +425,6 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
     }
 
-//    private fun drawToCanvas(x: Float, y: Float) {
-//        mPath!!.lineTo(x, y)
-//        invalidate()
-//    }
 
     fun undoDrawing() {
         if (paths.size > 0) {
@@ -454,16 +440,6 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
     }
 
-//    fun enableEraser() {
-//        tempBrushColor = brushColor
-//        brushColor = backgroundColor
-//    }
-//
-//    fun disableEraser() {
-//        if (tempBrushColor != 0) {
-//            brushColor = tempBrushColor
-//        }
-//    }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -472,14 +448,75 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                // Kiểm tra nếu textbox đang hiển thị và có được chạm vào
-                if (isTextBoxVisible && isTextBoxTouched(x, y)) {
+                selectedTextItem = textItems.find { textItem ->
+                    val textWidth = mPaint.measureText(textItem.text)
+                    val textHeight = mPaint.textSize
+                    val rectLeft = textItem.x - 20
+                    val rectTop = textItem.y - textHeight - 20
+                    val rectRight = textItem.x + textWidth + 20
+                    val rectBottom = textItem.y + 20
+                    x in rectLeft..rectRight && y >= rectTop && y <= rectBottom
+                }
+                if (selectedTextItem != null) {
+                    if (deleteIconRect.contains(x.toInt(), y.toInt())) {
+                        onDeleteTextItem(selectedTextItem!!)
+                        activityContext.closeEditSizeText()
+                        return true
+                    } else if (editIconRect.contains(x.toInt(), y.toInt())) {
+                        onEditTextItem(selectedTextItem!!)
+                        activityContext.closeEditSizeText()
+                        return true
+                    }
+                    activityContext.setupSeekBarForText(selectedTextItem!!)
                     activityContext.openEditSizeText()
-                    isEditingText = true
                     isDraggingTextBox = true
+                    isEditingText = true
+                    isTextBoxVisible = true
                     initialTouchX = x
                     initialTouchY = y
-                } else if (isStickerTouched(x, y)) {
+
+                    invalidate()
+                }
+                stickerItems.forEach { sticker ->
+                    sticker.isSelected = (sticker == selectedStickerItem)
+                }
+                selectedStickerItem = stickerItems.find { sticker ->
+                    val pathSticker = sticker.path
+                    if (pathSticker.isNullOrEmpty()) {
+                        return@find false
+                    }
+
+                    val bitmapFromPath = BitmapFactory.decodeFile(pathSticker)
+                    if (bitmapFromPath == null) {
+                        return@find false
+                    }
+                    val scaledWidth = sticker.widthSticker
+                    val scaledHeight = sticker.heightSticker
+                    val rectLeft = sticker.x
+                    val rectTop = sticker.y
+                    val rectRight = sticker.x + scaledWidth
+                    val rectBottom = sticker.y + scaledHeight
+
+                    x in rectLeft..rectRight && y in rectTop..rectBottom
+                }
+                if (selectedStickerItem != null) {
+                    if (deleteIconRectSticker.contains(x.toInt(), y.toInt())) {
+                        onDeleteIconClickSticker(selectedStickerItem!!)
+                        return true
+                    } else if (scaleIconRectSticker.contains(x.toInt(), y.toInt())) {
+                        isScalingSticker = true
+                        initialTouchX = x
+                        initialTouchY = y
+                        return true
+                    }
+                    isDraggingSticker = true
+                    initialTouchStickerX = x
+                    initialTouchStickerY = y
+                    isStickerTextBoxVisible = true
+
+                    invalidate()
+                }
+                if (isStickerTouched(x, y)) {
                     isDraggingSticker = true
                     initialTouchStickerX = x
                     initialTouchStickerY = y
@@ -490,24 +527,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                         Log.d("isStickerVisible", "isStickerVisible = $isStickerTextBoxVisible")
                         invalidate()
                     }
-                    if (deleteIconRect.contains(x.toInt(), y.toInt())) {
-                        onDeleteIconClick()
-                        return true
-                    } else if (editIconRect.contains(x.toInt(), y.toInt())) {
-                        onEditIconClick()
-                        return true
-                    }
-                    if (deleteIconRectSticker.contains(x.toInt(), y.toInt())) {
-                        onDeleteIconClickSticker()
-                        return true
-                    }
-                    if (scaleIconRectSticker.contains(x.toInt(), y.toInt())) {
-                        isScalingSticker = true
-                        initialTouchX = x
-                        initialTouchY = y
-                        return true
-                    }
-                    // Ẩn textbox nếu không chạm vào
+
                     if (isTextBoxVisible && !isTextTouched(x, y)) {
                         isTextBoxVisible = false
                         activityContext.closeEditSizeText()
@@ -527,30 +547,33 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (isDraggingTextBox) {
+                if (isDraggingTextBox && selectedTextItem != null) {
                     val dx = x - initialTouchX
                     val dy = y - initialTouchY
-                    textX += dx
-                    textY += dy
+                    selectedTextItem!!.x += dx
+                    selectedTextItem!!.y += dy
                     initialTouchX = x
                     initialTouchY = y
-                } else if (isDraggingSticker) {
+                } else if (isDraggingSticker && selectedStickerItem != null) {
                     val dx = x - initialTouchStickerX
                     val dy = y - initialTouchStickerY
-                    textXSticker += dx
-                    textYSticker += dy
+                    selectedStickerItem!!.x += dx
+                    selectedStickerItem!!.y += dy
                     initialTouchStickerX = x
                     initialTouchStickerY = y
-                    Log.d("Toa do", "x: $initialTouchStickerX, y: $initialTouchStickerY")
-                } else if (isScalingSticker) {
-                    val dx = x - initialTouchX
-                    val dy = y - initialTouchY
-                    stickerWidth = (stickerWidth + dx).coerceAtLeast(50f)
-                    stickerHeight = (stickerHeight + dy).coerceAtLeast(50f)
-                    rectWidth = stickerWidth
-                    rectHeight = stickerHeight
-                    initialTouchX = x
-                    initialTouchY = y
+                    preferences.saveSticker(selectedStickerItem!!)
+
+                } else if (isScalingSticker && selectedStickerItem != null) {
+                        val dx = x - initialTouchX
+                        val dy = y - initialTouchY
+                        val newWidth = (selectedStickerItem!!.widthSticker + dx).coerceAtLeast(50f)
+                        val newHeight = (selectedStickerItem!!.heightSticker + dy).coerceAtLeast(50f)
+                        selectedStickerItem!!.widthSticker = newWidth
+                        selectedStickerItem!!.heightSticker = newHeight
+                        initialTouchX = x
+                        initialTouchY = y
+                        invalidate()
+                        preferences.saveSticker(selectedStickerItem!!)
                 } else {
                     if (isEraserEnabled) {
                         touchMove(x, y)
@@ -566,7 +589,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                     isDraggingTextBox = false
                 } else if (isDraggingSticker) {
                     isDraggingSticker = false
-                } else if (isScalingSticker) { // Kết thúc việc thay đổi kích thước
+                } else if (isScalingSticker) {
                     isScalingSticker = false
                 } else {
                     if (isEraserEnabled) {
@@ -588,74 +611,75 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         return true
     }
 
-    private fun onDeleteIconClickSticker() {
-        pathSticker = null
+    private fun onEditTextItem(selectedTextItem: TextItem) {
+        textItems.remove(selectedTextItem)
+        activityContext.openInputTextEdit(
+            selectedTextItem.text, selectedTextItem.x, selectedTextItem.y
+        )
+    }
+
+    private fun onDeleteTextItem(textItem: TextItem) {
+        textItems.remove(textItem)
+        preferences.removeTextItem(textItem)
         invalidate()
     }
 
+    private fun onDeleteIconClickSticker(selectedStickerItem: StickerLocal) {
+        stickerItems.remove(selectedStickerItem)
+        preferences.removeSticker(selectedStickerItem)
+        invalidate()
+    }
+
+
     private fun isStickerTouched(x: Float, y: Float): Boolean {
-        if (pathSticker == null) {
-            return false
+        for (sticker in stickerItems) {
+            val pathSticker = sticker.path
+
+            if (pathSticker.isNullOrEmpty()) {
+                continue
+            }
+
+            val bitmapFromPath = BitmapFactory.decodeFile(pathSticker)
+            if (bitmapFromPath == null) {
+                continue
+            }
+
+            val scaledWidth = sticker.widthSticker
+            val scaledHeight = sticker.heightSticker
+
+            val stickerRect = Rect(
+                sticker.x.toInt(),
+                sticker.y.toInt(),
+                (sticker.x + scaledWidth).toInt(),
+                (sticker.y + scaledHeight).toInt()
+            )
+            if (x >= stickerRect.left && x <= stickerRect.right && y >= stickerRect.top && y <= stickerRect.bottom) {
+                return true
+            }
         }
-
-        val bitmapFromPath = BitmapFactory.decodeFile(pathSticker)
-        if (bitmapFromPath == null) {
-            return false
-        }
-
-        val scaledWidth = stickerWidth
-        val scaledHeight = stickerHeight
-        val stickerRect = Rect(
-            textXSticker.toInt(),
-            textYSticker.toInt(),
-            (textXSticker + scaledWidth).toInt(),
-            (textYSticker + scaledHeight).toInt()
-        )
-
-        return x >= stickerRect.left && x <= stickerRect.right && y >= stickerRect.top && y <= stickerRect.bottom
+        return false
     }
 
     private fun isTextTouched(x: Float, y: Float): Boolean {
-        if (userText == null) {
-            return false
+        for (textItem in textItems) {
+            val textWidth = mPaint.measureText(textItem.text)
+            val textHeight = mPaint.textSize
+            val rectLeft = textItem.x - 20
+            val rectTop = textItem.y - textHeight - 20
+            val rectRight = textItem.x + textWidth + 20
+            val rectBottom = textItem.y + 20
+            if (x >= rectLeft && x <= rectRight && y >= rectTop && y <= rectBottom) {
+                return true
+            }
         }
-        val textWidth = mPaint.measureText(userText)
-        val textHeight = mPaint.textSize
-        val rectLeft = textX - 20
-        val rectTop = textY - textHeight - 20
-        val rectRight = textX + textWidth + 20
-        val rectBottom = textY + 20
-        return x >= rectLeft && x <= rectRight && y >= rectTop && y <= rectBottom
+        return false
     }
 
-    private fun isTextBoxTouched(x: Float, y: Float): Boolean {
-        if (userText == null) {
-            return false
+    fun updateSelectedTextSize(size: Float) {
+        selectedTextItem?.let {
+            it.size = size
+            invalidate()
         }
-        val textWidth = mPaint.measureText(userText)
-        val textHeight = mPaint.textSize
-        val rectLeft = textX - 20
-        val rectTop = textY - textHeight - 20
-        val rectRight = textX + textWidth + 20
-        val rectBottom = textY + 20
-        return x >= rectLeft && x <= rectRight && y >= rectTop && y <= rectBottom
-    }
-
-
-    private fun onEditIconClick() {
-        activityContext.closeEditSizeText()
-        userText?.let { activityContext.openInputTextEdit(it, textX, textY) }
-    }
-
-    private fun onDeleteIconClick() {
-        userText = null
-        activityContext.clearText()
-        activityContext.closeEditSizeText()
-        invalidate()
-    }
-
-    private fun addDrawingChangeListener(listener: DrawingChangeListener?) {
-        drawingChangeListener = listener
     }
 
     fun updateBackgroundBitmap(bitmap: Bitmap) {
@@ -664,25 +688,30 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         invalidate()
     }
 
-    fun setBrushSize(size: Int) {
-        brushSize = size;
-    }
-
-    fun setSizeForText(size: Int) {
-        PaintForText.textSize = size.toFloat()
+    fun loadTextItems() {
+        textItems.clear()
+        textItems.addAll(preferences.getTextItems() ?: emptyList())
         invalidate()
     }
 
-    private fun calculateTextBoundingRect(): Rect {
-        if (userText == null || userText!!.isEmpty()) {
-            return Rect(0, 0, 0, 0)
+    fun loadStickerItems() {
+        stickerItems.clear()
+        val newStickers = preferences.getStickers()
+        stickerItems.addAll(newStickers.distinctBy { it.id })
+        invalidate()
+    }
+
+    private fun calculateTextBoundingRect(textItem: TextItem): Rect {
+        PaintForText.apply {
+            textSize = textItem.size
         }
-        val textWidth = PaintForText.measureText(userText)
-        val textHeight = PaintForText.textSize
-        val rectLeft = textX - 10
-        val rectTop = textY - textHeight - 10
-        val rectRight = textX + textWidth + 10
-        val rectBottom = textY + 10
+        val textWidth = PaintForText.measureText(textItem.text)
+        val textHeight = textItem.size
+        val padding = 20
+        val rectLeft = textItem.x - padding
+        val rectTop = textItem.y - textHeight - padding
+        val rectRight = textItem.x + textWidth + padding
+        val rectBottom = textItem.y + padding
         return Rect(rectLeft.toInt(), rectTop.toInt(), rectRight.toInt(), rectBottom.toInt())
     }
 
@@ -708,24 +737,16 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         brushColor = color
     }
 
-    fun setDrawText(text: String, x: Float, y: Float) {
-        userText = text
-        textX = x
-        textY = y
+    fun saveTextItems(preferences: SharedPreferences) {
+        preferences.saveTextItems(textItems)
+    }
+
+    fun loadTextItems(preferences: SharedPreferences) {
+        textItems.clear()
+        textItems.addAll(preferences.getTextItems() ?: emptyList())
         invalidate()
     }
 
-    fun setDrawSticker(path: String, x: Float, y: Float) {
-        pathSticker = path
-        textX = x
-        textY = y
-        invalidate()
-    }
-
-    fun setBorderColor(color: Int) {
-        borderColor = color
-        invalidate()
-    }
 
     fun setFont(path: String) {
         try {
@@ -735,6 +756,19 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    fun addText(
+        id: String,
+        text: String,
+        x: Float,
+        y: Float,
+        pathFont: String,
+        color: Int,
+        size: Float
+    ) {
+        textItems.add(TextItem(id, text, x, y, pathFont, color, size))
+        invalidate()
     }
 
 

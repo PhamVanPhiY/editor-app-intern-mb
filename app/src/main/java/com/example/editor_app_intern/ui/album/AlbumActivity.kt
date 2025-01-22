@@ -1,4 +1,4 @@
-package com.example.editor_app_intern.ui.ablum
+package com.example.editor_app_intern.ui.album
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

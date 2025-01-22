@@ -39,7 +39,8 @@ import com.example.editor_app_intern.InsetsWithKeyboardCallback
 import com.example.editor_app_intern.R
 import com.example.editor_app_intern.SharedPreferences
 import com.example.editor_app_intern.adapter.FontAdapter
-import com.example.editor_app_intern.constant.Constants.PATH_STICKER
+import com.example.editor_app_intern.constant.Constants.IS_EDIT_AGAIN
+import com.example.editor_app_intern.constant.Constants.PATH_IMAGE_JUST_SAVED
 import com.example.editor_app_intern.customeview.PaintView
 import com.example.editor_app_intern.databinding.ActivityEditBinding
 import com.example.editor_app_intern.dialog.NotificationDialog
@@ -47,7 +48,9 @@ import com.example.editor_app_intern.dialog.OptionDialog
 import com.example.editor_app_intern.extension.atLeastVersionUpSideDownCake
 import com.example.editor_app_intern.helper.PermissionHelper.PERMISSIONS
 import com.example.editor_app_intern.model.FontItem
-import com.example.editor_app_intern.ui.ablum.AlbumActivity
+import com.example.editor_app_intern.model.TextItem
+import com.example.editor_app_intern.ui.album.AlbumActivity
+import com.example.editor_app_intern.ui.result.ResultActivity
 import com.example.editor_app_intern.ui.sticker.StickerActivity
 import com.github.dhaval2404.colorpicker.MaterialColorPickerDialog
 import com.github.dhaval2404.colorpicker.model.ColorShape
@@ -59,24 +62,29 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.util.UUID
 
 class EditActivity : AppCompatActivity() {
     private lateinit var binding: ActivityEditBinding
-    private var isEraserEnabled = false
     private var isBackgroundRemoved = false
     private var textX: Float = 400f
     private var textY: Float = 600f
-    var isDrawingEnabled = false
+    private var textCount: Int = 0
     private lateinit var preferences: SharedPreferences
-    private var originalBitmap: Bitmap? = null
     private lateinit var gpuImage: GPUImage
-    private lateinit var stickerPath: String
     private lateinit var hueFilter: GPUImageHueFilter
     private lateinit var editViewModel: EditViewModel
     private lateinit var inputMethodManager: InputMethodManager
     private lateinit var permissionsRequestLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var singlePhotoPickerLauncher: ActivityResultLauncher<PickVisualMediaRequest>
     private lateinit var progressBarRemoveBackground: ProgressBar
+    private var fontPath: String = "fonts/rubik_regular.ttf"
+    private var colorText: Int = -16777216
+    private var sizeText: Float = 40f
+    private var textXEdit: Float = 0f
+    private var textYEdit: Float = 0f
+    private var savedImageURI: String? = null
+    private var isCheckDraw = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,64 +110,64 @@ class EditActivity : AppCompatActivity() {
         hueFilter = GPUImageHueFilter(0f)
         inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         preferences = SharedPreferences(this)
+        binding.paintView.loadTextItems(preferences)
+        val isEditAgain = intent.getBooleanExtra(IS_EDIT_AGAIN, false)
+        if (isEditAgain) {
+            loadImageEditAgain()
+        }
         val imagePath = preferences.getImagePath()
         progressBarRemoveBackground = binding.progressBar
-//        imagePath?.let {
-//            originalBitmap = BitmapFactory.decodeFile(it)
-//            binding.paintView.viewTreeObserver.addOnGlobalLayoutListener(object :
-//                ViewTreeObserver.OnGlobalLayoutListener {
-//                override fun onGlobalLayout() {
-//                    val paintViewWidth = binding.paintView.width
-//                    val paintViewHeight = binding.paintView.height
-//
-//
-//                    if (paintViewWidth > 0 && paintViewHeight > 0) {
-//
-//                        val scaledBitmap = Bitmap.createScaledBitmap(
-//                            originalBitmap!!,
-//                            paintViewWidth,
-//                            paintViewHeight,
-//                            true
-//                        )
-//
-//                        binding.paintView.updateBackgroundBitmap(scaledBitmap)
-//
-//                        Log.d(
-//                            "EditActivity",
-//                            "Scaled Bitmap size: ${scaledBitmap.width} x ${scaledBitmap.height}"
-//                        )
-//                        binding.paintView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-//                    }
-//                }
-//            })
-//        }
-        binding.paintView.viewTreeObserver.addOnGlobalLayoutListener(object :
-            ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                val paintViewWidth = binding.paintView.width
-                val paintViewHeight = binding.paintView.height
+        imagePath?.let {
+            var originalBitmap = BitmapFactory.decodeFile(it)
+            binding.paintView.viewTreeObserver.addOnGlobalLayoutListener(object :
+                ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    val paintViewWidth = binding.paintView.width
+                    val paintViewHeight = binding.paintView.height
+                    if (paintViewWidth > 0 && paintViewHeight > 0) {
+                        val scaledBitmap = Bitmap.createScaledBitmap(
+                            originalBitmap!!,
+                            paintViewWidth,
+                            paintViewHeight,
+                            true
+                        )
 
-                if (paintViewWidth > 0 && paintViewHeight > 0) {
-                    // Tải bitmap từ drawable
-                    val originalBitmap =
-                        BitmapFactory.decodeResource(resources, R.drawable.filter_constrast)
+                        binding.paintView.updateBackgroundBitmap(scaledBitmap)
 
-                    // Tính toán tỷ lệ
-                    val scaleWidth = paintViewWidth.toFloat() / originalBitmap.width
-                    val scaleHeight = paintViewHeight.toFloat() / originalBitmap.height
-                    val scale = Math.min(scaleWidth, scaleHeight)
-
-                    // Tính toán kích thước mới
-                    val scaledWidth = (originalBitmap.width * scale).toInt()
-                    val scaledHeight = (originalBitmap.height * scale).toInt()
-                    val scaledBitmap =
-                        Bitmap.createScaledBitmap(originalBitmap, scaledWidth, scaledHeight, true)
-                    binding.paintView.updateBackgroundBitmap(scaledBitmap)
-
-                    binding.paintView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                        Log.d(
+                            "EditActivity",
+                            "Scaled Bitmap size: ${scaledBitmap.width} x ${scaledBitmap.height}"
+                        )
+                        binding.paintView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    }
                 }
-            }
-        })
+            })
+        }
+
+//        binding.paintView.viewTreeObserver.addOnGlobalLayoutListener(object :
+//            ViewTreeObserver.OnGlobalLayoutListener {
+//            override fun onGlobalLayout() {
+//                val paintViewWidth = binding.paintView.width
+//                val paintViewHeight = binding.paintView.height
+//
+//                if (paintViewWidth > 0 && paintViewHeight > 0) {
+//                    val originalBitmap =
+//                        BitmapFactory.decodeResource(resources, R.drawable.filter_constrast)
+//                    val scaleWidth = paintViewWidth.toFloat() / originalBitmap.width
+//                    val scaleHeight = paintViewHeight.toFloat() / originalBitmap.height
+//                    val scale = Math.min(scaleWidth, scaleHeight)
+//
+//                    val scaledWidth = (originalBitmap.width * scale).toInt()
+//                    val scaledHeight = (originalBitmap.height * scale).toInt()
+//                    val scaledBitmap =
+//                        Bitmap.createScaledBitmap(originalBitmap, scaledWidth, scaledHeight, true)
+//                    binding.paintView.updateBackgroundBitmap(scaledBitmap)
+//
+//                    binding.paintView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+//                }
+//            }
+//        })
+
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -179,29 +187,25 @@ class EditActivity : AppCompatActivity() {
     }
 
     private fun setUpGetSticker() {
-        stickerPath = intent.getStringExtra(PATH_STICKER).toString()
-        binding.paintView.setDrawSticker(stickerPath, textX, textY)
+        preferences = SharedPreferences(this)
+        val savedStickers = preferences.getStickers()
+        binding.paintView.stickerItems.addAll(savedStickers)
     }
 
     @SuppressLint("ResourceType", "ClickableViewAccessibility")
     private fun setUpView() {
         binding.apply {
             btnDraw.setOnClickListener {
-                binding.apply {
-                    lineDraw.visibility = View.VISIBLE
-                    lineEraser.visibility = View.GONE
-                }
-                paintView.isDrawingEnabled = true
-                paintView.isEraserEnabled = false
-            }
 
-            btnEraser.setOnClickListener {
-                binding.apply {
-                    lineEraser.visibility = View.VISIBLE
-                    lineDraw.visibility = View.GONE
+                isCheckDraw = !isCheckDraw
+
+                if (isCheckDraw) {
+                    paintView.isDrawingEnabled = true
+                    binding.lineDraw.visibility = View.VISIBLE
+                } else {
+                    paintView.isDrawingEnabled = false
+                    binding.lineDraw.visibility = View.INVISIBLE
                 }
-                paintView.isEraserEnabled = true
-                paintView.isDrawingEnabled = false
             }
 
             btnUndo.setOnClickListener {
@@ -219,12 +223,8 @@ class EditActivity : AppCompatActivity() {
                         progressBarRemoveBackground.visibility = View.VISIBLE
                         paintView.removeBackground(bitmap, progressBarRemoveBackground)
                         isBackgroundRemoved = true
-                    } else {
-                        Toast.makeText(this@EditActivity, "Canvas is empty", Toast.LENGTH_SHORT)
-                            .show()
                     }
                 } else {
-
                     paintView.undoRemoveBackground()
                     isBackgroundRemoved = false
 
@@ -262,13 +262,34 @@ class EditActivity : AppCompatActivity() {
                 layoutInputText.visibility = ConstraintLayout.INVISIBLE
                 layoutInputText.startAnimation(slideDownAnimation)
                 inputMethodManager.hideSoftInputFromWindow(tvInputText.windowToken, 0)
-
                 val textEntered = tvInputText.text.toString()
-
                 if (textEntered.isNotEmpty()) {
-                    paintView.setDrawText(textEntered, textX, textY)
+                    val textXNew: Float
+                    val textYNew: Float
+
+                    if (textXEdit > 0 && textYEdit > 0) {
+                        textXNew = textXEdit
+                        textYNew = textYEdit
+                    } else {
+                        textXNew = textX
+                        textYNew = textY + (textCount * 100F)
+                    }
+
+                    paintView.addText(
+                        id = UUID.randomUUID().toString(),
+                        textEntered,
+                        textXNew,
+                        textYNew,
+                        fontPath,
+                        colorText,
+                        sizeText
+                    )
+                    textCount++
                 }
+
+                tvInputText.text.clear()
                 paintView.isTextBoxVisible = true
+                paintView.saveTextItems(preferences)
             }
 
             seekbarSizeText.max = 100
@@ -283,22 +304,21 @@ class EditActivity : AppCompatActivity() {
                     if (fromUser) {
                         CoroutineScope(Dispatchers.Main).launch {
                             withContext(Dispatchers.IO) {
-                                paintView.setSizeForText(progress)
+                                sizeText = progress.toFloat()
+                                paintView.updateSelectedTextSize(progress.toFloat())
                             }
-                            tvSizeText.text = progress.toString()
+                            binding.tvSizeText.text = progress.toString()
+
                         }
                     }
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                    // Có thể không cần làm gì ở đây
                 }
 
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                    // Có thể không cần làm gì ở đây
                 }
             })
-
             seekbarHue.max = 360
             seekbarHue.progress = 180
             seekbarHue.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -332,9 +352,13 @@ class EditActivity : AppCompatActivity() {
             btnSave.setOnClickListener {
                 paintView.isTextBoxVisible = false
                 paintView.isStickerTextBoxVisible = false
+                paintView.backgroundBitmap?.let { it1 -> preferences.saveBackgroundBitmap(it1) }
                 paintView.invalidate()
-                saveImage()
-
+                savedImageURI = saveImage().toString()
+                val intent = Intent(this@EditActivity, ResultActivity::class.java).apply {
+                    putExtra(PATH_IMAGE_JUST_SAVED, savedImageURI)
+                }
+                startActivity(intent)
 
             }
 
@@ -358,6 +382,8 @@ class EditActivity : AppCompatActivity() {
                 binding.apply {
                     tvInputText.setTextColor(color)
                     paintView.setBrushColorForText(color)
+                    colorText = color
+                    Log.d("EditActivity", "Selected color: $color")
                 }
             }.show()
     }
@@ -374,14 +400,27 @@ class EditActivity : AppCompatActivity() {
     private fun applyFont(font: FontItem) {
         binding.apply {
             tvInputText.setTypeface(Typeface.createFromAsset(assets, font.fontPath))
-            paintView.setFont(font.fontPath) // Gọi phương thức setFont
+            paintView.setFont(font.fontPath)
+            fontPath = font.fontPath
         }
     }
 
+    private fun loadImageEditAgain() {
+        binding.paintView.apply {
+            backgroundBitmap = preferences.getBackgroundBitmap()
+            loadStickerItems()
+            loadTextItems()
+            invalidate()
+        }
+
+
+    }
+
     private fun applyHueFilter() {
-        if (originalBitmap != null) {
+
+        if (binding.paintView.backgroundBitmap != null) {
             CoroutineScope(Dispatchers.Default).launch {
-                gpuImage.setImage(originalBitmap)
+                gpuImage.setImage(binding.paintView.backgroundBitmap)
                 gpuImage.setFilter(hueFilter)
                 val filteredBitmap = gpuImage.bitmapWithFilterApplied
 
@@ -470,12 +509,6 @@ class EditActivity : AppCompatActivity() {
         }
     }
 
-    fun clearText() {
-        binding.apply {
-            tvInputText.text.clear()
-        }
-    }
-
     fun openInputText() {
         binding.apply {
             paintView.isTextBoxVisible = true
@@ -509,12 +542,12 @@ class EditActivity : AppCompatActivity() {
             val slideUpAnimation = AnimationUtils.loadAnimation(this@EditActivity, R.anim.slide_up)
             layoutInputText.visibility = ConstraintLayout.VISIBLE
             layoutInputText.startAnimation(slideUpAnimation)
-            tvInputText.setText(text) // Hiển thị văn bản hiện tại
+            tvInputText.setText(text)
             tvInputText.isEnabled = true
             tvInputText.requestFocus()
             inputMethodManager.showSoftInput(tvInputText, InputMethodManager.SHOW_IMPLICIT)
-            textX = x
-            textY = y
+            textXEdit = x
+            textYEdit = y
         }
     }
 
@@ -537,7 +570,16 @@ class EditActivity : AppCompatActivity() {
 
     }
 
-    private fun saveImage() {
+    @SuppressLint("SetTextI18n")
+    fun setupSeekBarForText(selectedTextItem: TextItem) {
+        binding.apply {
+            seekbarSizeText.progress = selectedTextItem.size.toInt()
+            binding.tvSizeText.text = selectedTextItem.size.toInt().toString()
+        }
+
+    }
+
+    private fun saveImage(): Uri? {
         binding.apply {
             val bitmap = paintView.canvasBitmap
             val imageName = "edited_image_${System.currentTimeMillis()}.jpg"
@@ -560,7 +602,7 @@ class EditActivity : AppCompatActivity() {
                 }
             }
 
-            try {
+            return try {
                 contentResolver.insert(imageCollection, contentValues)?.let { uri ->
                     contentResolver.openOutputStream(uri).use { outputStream ->
                         if (outputStream != null) {
@@ -572,6 +614,7 @@ class EditActivity : AppCompatActivity() {
                                 R.string.save_image_successfully,
                                 Toast.LENGTH_SHORT
                             ).show()
+                            uri
                         } else {
                             throw IOException(resources.getString(R.string.exception_cant_open_output_stream))
                         }
@@ -585,11 +628,9 @@ class EditActivity : AppCompatActivity() {
                     resources.getString(R.string.fail_to_save_image),
                     Toast.LENGTH_SHORT
                 ).show()
+                null
             }
-
         }
-
-
     }
 
 
@@ -635,9 +676,24 @@ class EditActivity : AppCompatActivity() {
         )
     }
 
+    override fun onPause() {
+        super.onPause()
+        binding.paintView.saveTextItems(preferences)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        binding.paintView.saveTextItems(preferences)
+    }
+
+//    override fun onStop() {
+//        preferences.clearTextItems()
+//        super.onStop()
+//
+//    }
+
     override fun onDestroy() {
         preferences.clearImagePath()
         super.onDestroy()
-
     }
 }

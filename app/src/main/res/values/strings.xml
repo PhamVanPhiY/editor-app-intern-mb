@@ -7,6 +7,8 @@
     <string name="normal">Normal</string>
     <string name="image_saved">Take photo successfully</string>
     <string name="image_save">Saved image successfully</string>
+    <string name="edit_again">Edit again</string>
+    <string name="saved_project">Saved project</string>
     <string name="time_5s">5s</string>
     <string name="time_3s">3s</string>
     <string name="time_7s">7s</string>

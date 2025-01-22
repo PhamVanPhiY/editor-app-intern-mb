@@ -20,16 +20,12 @@ class StickerViewModel(application: Application) : AndroidViewModel(application)
 
     fun loadStickersFromJson() {
         val jsonFileRef = storage.reference.child("list_sticker/list_sticker.json")
-
         jsonFileRef.getBytes(Long.MAX_VALUE).addOnSuccessListener { bytes ->
             val json = String(bytes)
             val gson = Gson()
             val stickerListType = object : TypeToken<List<Sticker>>() {}.type
             val stickers: List<Sticker> = gson.fromJson(json, stickerListType)
-
             _stickers.value = stickers
-
-            // Log ra giá trị của danh sách sticker
             Log.d("StickerViewModel", "Loaded stickers: $stickers")
         }.addOnFailureListener { exception ->
             Log.e("StickerViewModel", "Error loading stickers: ${exception.message}")
