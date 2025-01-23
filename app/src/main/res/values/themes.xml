@@ -1,7 +1,6 @@
 <resources>
     <!-- Base application theme. -->
     <style name="Base.Theme.EditorAppIntern" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:windowFullscreen">true</item>
         <item name="android:navigationBarColor">@color/black</item>
     </style>
 

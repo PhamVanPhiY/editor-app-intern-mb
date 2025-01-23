@@ -274,7 +274,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
 
         for (sticker in stickerItems) {
-            Log.d("List sticker:", "List sticker : $stickerItems")
+            Log.d("List sticker:", "List sticker112233 : $stickerItems")
             val bitmapFromPath = BitmapFactory.decodeFile(sticker.path)
             if (bitmapFromPath != null) {
                 val scaledBitmap = Bitmap.createScaledBitmap(
@@ -697,6 +697,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     fun loadStickerItems() {
         stickerItems.clear()
         val newStickers = preferences.getStickers()
+        preferences.clearStickers()
         stickerItems.addAll(newStickers.distinctBy { it.id })
         invalidate()
     }
