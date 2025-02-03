@@ -3,4 +3,6 @@ This is a photo editer app build by me.
 
 
 
-![20221114_002639](https://github.com/user-attachments/assets/2384f66f-5d89-4f35-8f91-b8a25728a0fb)
+
+https://github.com/user-attachments/assets/baa4c46e-f908-4e32-a88a-848cdc6069e4
+
