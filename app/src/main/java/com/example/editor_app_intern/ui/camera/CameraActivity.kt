@@ -10,9 +10,9 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
 import android.view.View
-import android.widget.ImageView
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.OptIn
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -62,7 +62,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class CameraActivity : AppCompatActivity() {
-    private lateinit var loadingImageView: ImageView
     private lateinit var preferences: SharedPreferences
     private var countdownTimer: CountDownTimer? = null
     private var countdownTimeInMillis: Long = 0
@@ -104,6 +103,7 @@ class CameraActivity : AppCompatActivity() {
         })
 
         setUpView()
+        requestRuntimePermission()
     }
 
     private fun setUpFilterRecyclerView(filterList: List<FilterCamera>) {
@@ -137,12 +137,6 @@ class CameraActivity : AppCompatActivity() {
 
     private fun setUpView() {
         supportActionBar?.hide()
-
-        if (allPermissionsGranted()) {
-            startCamera()
-        } else {
-            ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
-        }
 
         binding.apply {
             cameraCaptureButton.setOnClickListener {
@@ -235,15 +229,12 @@ class CameraActivity : AppCompatActivity() {
 
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
-        imageCapture.takePicture(
-            outputOptions,
+        imageCapture.takePicture(outputOptions,
             ContextCompat.getMainExecutor(this),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onError(exc: ImageCaptureException) {
                     Log.e(
-                        "countdownTimeInMillis 1112233",
-                        "Photo capture failed: ${exc.message}",
-                        exc
+                        "countdownTimeInMillis 1112233", "Photo capture failed: ${exc.message}", exc
                     )
                 }
 
@@ -254,8 +245,7 @@ class CameraActivity : AppCompatActivity() {
                         notifyImageSaved(photoFile.absolutePath)
                     }
                 }
-            }
-        )
+            })
     }
 
 
@@ -310,6 +300,7 @@ class CameraActivity : AppCompatActivity() {
             val intent = Intent(this@CameraActivity, EditActivity::class.java).apply {
                 putExtra(PATH_IMAGE_INTENT, imagePath)
                 preferences.saveImagePath(imagePath)
+                preferences.saveImagePathOrigin(imagePath)
             }
             startActivity(intent)
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
@@ -317,8 +308,30 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
-    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
+    private fun requestRuntimePermission() {
+        if (ContextCompat.checkSelfPermission(
+                baseContext, REQUIRED_PERMISSIONS[0]
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            startCamera()
+        } else if (ActivityCompat.shouldShowRequestPermissionRationale(
+                this, REQUIRED_PERMISSIONS[0]
+            )
+        ) {
+            AlertDialog.Builder(this).setTitle(R.string.permission_camera_access)
+                .setMessage(R.string.question_to_access_camera).setCancelable(false)
+                .setPositiveButton(R.string.yes) { dialog, _ ->
+                    ActivityCompat.requestPermissions(
+                        this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
+                    )
+                    dialog.dismiss()
+                }.setNegativeButton(R.string.no) { dialog, _ ->
+                    dialog.dismiss()
+                    finish()
+                }.show()
+        } else {
+            ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
+        }
     }
 
     private fun getOutputDirectory(): File {
@@ -334,14 +347,32 @@ class CameraActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
-
-            if (allPermissionsGranted()) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startCamera()
+            } else if (REQUIRED_PERMISSIONS.any {
+                    !ActivityCompat.shouldShowRequestPermissionRationale(
+                        this, it
+                    )
+                }) {
+                AlertDialog.Builder(this).setTitle(R.string.permission_required)
+                    .setMessage(R.string.rationale_camera_permission).setCancelable(false)
+                    .setPositiveButton(R.string.settings) { dialog, _ ->
+                        Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = android.net.Uri.fromParts("package", packageName, null)
+                            startActivity(this)
+                            finish()
+                        }
+                        dialog.dismiss()
+                    }.setNegativeButton(R.string.cancel) { dialog, _ ->
+                        dialog.dismiss()
+                        finish()
+                    }.show()
             } else {
-                finish()
+                requestRuntimePermission()
             }
         }
     }
+
 
     @OptIn(ExperimentalGetImage::class)
     private fun startCamera() {
@@ -359,8 +390,7 @@ class CameraActivity : AppCompatActivity() {
             imageCapture = ImageCapture.Builder().build()
 
             val imageAnalysis = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build()
 
             imageAnalysis.setAnalyzer(cameraExecutor, ImageAnalysis.Analyzer { imageProxy ->
                 processImage(imageProxy)
@@ -412,21 +442,24 @@ class CameraActivity : AppCompatActivity() {
             postScale(-1f, 1f)
         }
         return Bitmap.createBitmap(
-            originalBitmap,
-            0,
-            0,
-            originalBitmap.width,
-            originalBitmap.height,
-            matrix,
-            true
+            originalBitmap, 0, 0, originalBitmap.width, originalBitmap.height, matrix, true
         )
     }
 
     override fun onDestroy() {
-        // preferences.clearTimerValue()
         countdownTimer?.cancel()
         super.onDestroy()
         cameraExecutor.shutdown()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (ContextCompat.checkSelfPermission(
+                this, REQUIRED_PERMISSIONS[0]
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            startCamera()
+        }
     }
 }
 

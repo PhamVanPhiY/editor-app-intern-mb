@@ -144,7 +144,7 @@
         android:background="@drawable/pen"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@+id/btn_text"
-        app:layout_constraintEnd_toStartOf="@+id/btn_pick_color"
+        app:layout_constraintEnd_toStartOf="@+id/btn_eraser"
         app:layout_constraintStart_toEndOf="@+id/btn_text" />
 
     <View
@@ -152,11 +152,21 @@
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_2dp"
         android:layout_marginTop="@dimen/size_2dp"
-        android:background="@android:color/holo_red_dark"
+        android:background="@android:color/black"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="@+id/btn_draw"
         app:layout_constraintStart_toStartOf="@+id/btn_draw"
         app:layout_constraintTop_toBottomOf="@+id/btn_draw" />
+
+    <ImageButton
+        android:id="@+id/btn_eraser"
+        android:layout_width="@dimen/size_25dp"
+        android:layout_height="@dimen/size_25dp"
+        android:background="@drawable/clean"
+        android:contentDescription="@null"
+        app:layout_constraintBottom_toBottomOf="@+id/btn_text"
+        app:layout_constraintEnd_toStartOf="@+id/btn_pick_color"
+        app:layout_constraintStart_toEndOf="@+id/btn_draw" />
 
     <ImageButton
         android:id="@+id/btn_pick_color"
@@ -165,14 +175,14 @@
         android:background="@drawable/color_picker"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/btn_draw"
-        app:layout_constraintEnd_toStartOf="@+id/btn_color_picked"
-        app:layout_constraintStart_toEndOf="@id/btn_draw" />
+        app:layout_constraintEnd_toStartOf="@+id/btn_crop"
+        app:layout_constraintStart_toEndOf="@id/btn_eraser" />
 
     <ImageButton
-        android:id="@+id/btn_color_picked"
+        android:id="@+id/btn_crop"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_25dp"
-        android:background="@drawable/color_picker_circle"
+        android:background="@drawable/crop"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/btn_draw"
         app:layout_constraintEnd_toStartOf="@+id/btn_select_image"
@@ -186,13 +196,14 @@
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/btn_draw"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/btn_color_picked" />
+        app:layout_constraintStart_toEndOf="@id/btn_crop" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/layout_input_text"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/white"
+        android:fitsSystemWindows="true"
         android:visibility="invisible">
 
         <ImageView
@@ -240,7 +251,6 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="horizontal"
-            android:padding="16dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">

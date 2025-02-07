@@ -20,25 +20,14 @@
         android:id="@+id/tv_splash_screen"
         android:layout_width="@dimen/size_350dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/size_20sp"
-        android:layout_marginBottom="@dimen/size_20sp"
+        android:layout_marginStart="@dimen/size_20dp"
+        android:layout_marginBottom="@dimen/size_50dp"
         android:fontFamily="@font/poppins_bold"
         android:maxLines="2"
         android:text="@string/slogan"
         android:textColor="@color/white"
         android:textSize="@dimen/size_30sp"
-        app:layout_constraintBottom_toTopOf="@+id/btn_try_now"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btn_try_now"
-        android:layout_width="@dimen/size_200dp"
-        android:layout_height="@dimen/size_50dp"
-        android:layout_marginBottom="@dimen/size_30sp"
-        android:background="@drawable/background_button_try_it_now"
-        android:fontFamily="@font/poppins_bold"
-        android:text="@string/try_it_now"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

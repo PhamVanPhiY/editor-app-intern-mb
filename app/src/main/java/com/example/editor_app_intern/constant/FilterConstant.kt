@@ -13,11 +13,8 @@ object Constants {
     const val FILTER_CROSS_HATCH = "Crosshatch"
     const val FILTER_GAMMA = "Gamma"
     const val  PATH_IMAGE_INTENT = "path_image"
-    const val PATH_STICKER = "sticker_path"
-    const val WIDTH_STICKER = "sticker_width"
-    const val HEIGHT_STICKER = "sticker_height"
-    const val X_STICKER = "sticker_x"
-    const val Y_STICKER = "sticker_y"
     const val PATH_IMAGE_JUST_SAVED = "imageUri"
     const val IS_EDIT_AGAIN= "isEditAgain"
+    const val PATH_IMAGE_FROM_ALBUM = "imageUri"
+    const val FOLDER_IMAGE_EDITED = "/storage/emulated/0/Android/data/com.example.editor_app_intern/files/Pictures/photo_editor_app"
 }

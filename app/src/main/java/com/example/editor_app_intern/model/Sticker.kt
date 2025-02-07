@@ -6,5 +6,5 @@ data class Sticker(
     val widthSticker: Float,
     val heightSticker: Float,
     var x: Float,
-    var y: Float
+    var y: Float,
 )

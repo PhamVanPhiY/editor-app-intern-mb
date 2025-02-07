@@ -1,25 +1,25 @@
 package com.example.editor_app_intern.ui.edit
 
 import android.annotation.SuppressLint
-import android.content.ContentValues
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.graphics.PorterDuff
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
+import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
-import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.Toast
@@ -34,8 +34,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.editor_app_intern.InsetsWithKeyboardAnimationCallback
-import com.example.editor_app_intern.InsetsWithKeyboardCallback
 import com.example.editor_app_intern.R
 import com.example.editor_app_intern.SharedPreferences
 import com.example.editor_app_intern.adapter.FontAdapter
@@ -55,12 +53,17 @@ import com.example.editor_app_intern.ui.sticker.StickerActivity
 import com.github.dhaval2404.colorpicker.MaterialColorPickerDialog
 import com.github.dhaval2404.colorpicker.model.ColorShape
 import com.github.dhaval2404.colorpicker.model.ColorSwatch
+import com.yalantis.ucrop.UCrop
 import jp.co.cyberagent.android.gpuimage.GPUImage
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageHueFilter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
 
@@ -85,88 +88,102 @@ class EditActivity : AppCompatActivity() {
     private var textYEdit: Float = 0f
     private var savedImageURI: String? = null
     private var isCheckDraw = false
-
+    private lateinit var imagePath: String
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         binding = ActivityEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        val insetsWithKeyboardCallback = InsetsWithKeyboardCallback(window)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root, insetsWithKeyboardCallback)
-        ViewCompat.setWindowInsetsAnimationCallback(binding.root, insetsWithKeyboardCallback)
         editViewModel = ViewModelProvider(this).get(EditViewModel::class.java)
 
         editViewModel.fontList.observe(this, { fontList ->
             setUpFontRecyclerView(fontList)
         })
-        val insetsWithKeyboardAnimationCallback =
-            InsetsWithKeyboardAnimationCallback(binding.rcvFont)
-        ViewCompat.setWindowInsetsAnimationCallback(
-            binding.rcvFont,
-            insetsWithKeyboardAnimationCallback
-        )
+
 
         gpuImage = GPUImage(this)
         hueFilter = GPUImageHueFilter(0f)
         inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        progressBarRemoveBackground = binding.progressBar
         preferences = SharedPreferences(this)
         binding.paintView.loadTextItems(preferences)
         val isEditAgain = intent.getBooleanExtra(IS_EDIT_AGAIN, false)
         if (isEditAgain) {
             loadImageEditAgain()
         }
-        val imagePath = preferences.getImagePath()
-        progressBarRemoveBackground = binding.progressBar
-        imagePath?.let {
-            var originalBitmap = BitmapFactory.decodeFile(it)
+        imagePath = preferences.getImagePath().toString()
+        val backgroundBitmap = preferences.getBackgroundBitmap()
+        Log.d("EditActivity", "backgroundBitmap: $backgroundBitmap")
+        if (backgroundBitmap != null && !backgroundBitmap.isRecycled) {
             binding.paintView.viewTreeObserver.addOnGlobalLayoutListener(object :
                 ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
                     val paintViewWidth = binding.paintView.width
                     val paintViewHeight = binding.paintView.height
+
                     if (paintViewWidth > 0 && paintViewHeight > 0) {
-                        val scaledBitmap = Bitmap.createScaledBitmap(
-                            originalBitmap!!,
+                        val scaledBackgroundBitmap = Bitmap.createScaledBitmap(
+                            backgroundBitmap,
                             paintViewWidth,
                             paintViewHeight,
                             true
                         )
-
-                        binding.paintView.updateBackgroundBitmap(scaledBitmap)
-
+                        binding.paintView.updateBackgroundBitmap(scaledBackgroundBitmap)
                         Log.d(
                             "EditActivity",
-                            "Scaled Bitmap size: ${scaledBitmap.width} x ${scaledBitmap.height}"
+                            "Scaled Background Bitmap size: ${scaledBackgroundBitmap.width} x ${scaledBackgroundBitmap.height}"
                         )
                         binding.paintView.viewTreeObserver.removeOnGlobalLayoutListener(this)
                     }
                 }
             })
+        } else if (imagePath.isNotEmpty()) {
+            val imageUri: Uri = if (imagePath.startsWith("content://")) {
+                Uri.parse(imagePath)
+            } else {
+                Uri.fromFile(File(imagePath.replace("file:", "")))
+            }
+
+            try {
+                val inputStream = contentResolver.openInputStream(imageUri)
+                val originalBitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+                if (originalBitmap == null) {
+                    Log.e("EditActivity", "Failed to decode bitmap from path: $imagePath")
+                    return
+                }
+
+                binding.paintView.viewTreeObserver.addOnGlobalLayoutListener(object :
+                    ViewTreeObserver.OnGlobalLayoutListener {
+                    override fun onGlobalLayout() {
+                        val paintViewWidth = binding.paintView.width
+                        val paintViewHeight = binding.paintView.height
+
+                        if (paintViewWidth > 0 && paintViewHeight > 0) {
+                            val scaledBitmap = Bitmap.createScaledBitmap(
+                                originalBitmap,
+                                paintViewWidth,
+                                paintViewHeight,
+                                true
+                            )
+                            binding.paintView.updateBackgroundBitmap(scaledBitmap)
+                            Log.d(
+                                "EditActivity",
+                                "Scaled Bitmap size: ${scaledBitmap.width} x ${scaledBitmap.height}"
+                            )
+                            binding.paintView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                        }
+                    }
+                })
+            } catch (e: FileNotFoundException) {
+                Log.e("EditActivity", "File not found: ${e.message}")
+            } catch (e: Exception) {
+                Log.e("EditActivity", "Error loading bitmap: ${e.message}")
+            }
+        } else {
+            Log.e("EditActivity", "Invalid image path and no background bitmap available.")
         }
 
-//        binding.paintView.viewTreeObserver.addOnGlobalLayoutListener(object :
-//            ViewTreeObserver.OnGlobalLayoutListener {
-//            override fun onGlobalLayout() {
-//                val paintViewWidth = binding.paintView.width
-//                val paintViewHeight = binding.paintView.height
-//
-//                if (paintViewWidth > 0 && paintViewHeight > 0) {
-//                    val originalBitmap =
-//                        BitmapFactory.decodeResource(resources, R.drawable.filter_constrast)
-//                    val scaleWidth = paintViewWidth.toFloat() / originalBitmap.width
-//                    val scaleHeight = paintViewHeight.toFloat() / originalBitmap.height
-//                    val scale = Math.min(scaleWidth, scaleHeight)
-//
-//                    val scaledWidth = (originalBitmap.width * scale).toInt()
-//                    val scaledHeight = (originalBitmap.height * scale).toInt()
-//                    val scaledBitmap =
-//                        Bitmap.createScaledBitmap(originalBitmap, scaledWidth, scaledHeight, true)
-//                    binding.paintView.updateBackgroundBitmap(scaledBitmap)
-//
-//                    binding.paintView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-//                }
-//            }
-//        })
 
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -179,7 +196,6 @@ class EditActivity : AppCompatActivity() {
         upLoadPhotoFromPhotoPicker()
         setUpGetSticker()
     }
-
 
     override fun finish() {
         super.finish()
@@ -196,7 +212,7 @@ class EditActivity : AppCompatActivity() {
     private fun setUpView() {
         binding.apply {
             btnDraw.setOnClickListener {
-
+                paintView.isEraserEnabled = false
                 isCheckDraw = !isCheckDraw
 
                 if (isCheckDraw) {
@@ -206,6 +222,10 @@ class EditActivity : AppCompatActivity() {
                     paintView.isDrawingEnabled = false
                     binding.lineDraw.visibility = View.INVISIBLE
                 }
+            }
+
+            btnEraser.setOnClickListener {
+                paintView.clearCanvas()
             }
 
             btnUndo.setOnClickListener {
@@ -232,16 +252,9 @@ class EditActivity : AppCompatActivity() {
             }
 
             btnPickColor.setOnClickListener {
-                setBrushColor(this@EditActivity, paintView, btnColorPicked)
+                setBrushColor(this@EditActivity, paintView)
             }
 
-            btnColorPicked.setOnClickListener {
-                setBrushColor(this@EditActivity, paintView, btnColorPicked)
-            }
-
-            btnColor.setOnClickListener {
-                setBrushColor(this@EditActivity, paintView, btnColorPicked)
-            }
 
             btnSelectImage.setOnClickListener {
                 launchPhoToPicker()
@@ -350,16 +363,32 @@ class EditActivity : AppCompatActivity() {
 
 
             btnSave.setOnClickListener {
-                paintView.isTextBoxVisible = false
-                paintView.isStickerTextBoxVisible = false
-                paintView.backgroundBitmap?.let { it1 -> preferences.saveBackgroundBitmap(it1) }
-                paintView.invalidate()
-                savedImageURI = saveImage().toString()
-                val intent = Intent(this@EditActivity, ResultActivity::class.java).apply {
-                    putExtra(PATH_IMAGE_JUST_SAVED, savedImageURI)
-                }
-                startActivity(intent)
+                CoroutineScope(Dispatchers.Main).launch {
+                    paintView.isTextBoxVisible = false
+                    paintView.isStickerTextBoxVisible = false
+                    paintView.selectedTextItem = null
+                    paintView.selectedStickerItem = null
 
+                    val saveBitmapDeferred = async(Dispatchers.IO) {
+                        paintView.backgroundBitmap?.let { bitmap ->
+                            preferences.saveBackgroundBitmap(bitmap)
+                        }
+                    }
+                    saveBitmapDeferred.await()
+
+                    paintView.invalidate()
+
+                    val saveImageDeferred = async(Dispatchers.IO) {
+                        saveImage().toString()
+                    }
+                    savedImageURI = saveImageDeferred.await()
+
+                    val intent = Intent(this@EditActivity, ResultActivity::class.java).apply {
+                        putExtra(PATH_IMAGE_JUST_SAVED, savedImageURI)
+                    }
+                    startActivity(intent)
+                    finish()
+                }
             }
 
             btnHue.setOnClickListener {
@@ -369,6 +398,24 @@ class EditActivity : AppCompatActivity() {
             btnSticker.setOnClickListener {
                 startActivity(Intent(this@EditActivity, StickerActivity::class.java))
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+            }
+
+            btnCrop.setOnClickListener {
+                val imagePathOrigin = preferences.getImagePathOrigin()
+                if (imagePathOrigin != null) {
+                    if (imagePathOrigin.isNotEmpty()) {
+                        val imageUri: Uri
+                        if (imagePathOrigin.startsWith("content://")) {
+                            imageUri = Uri.parse(imagePathOrigin)
+                        } else {
+                            imageUri = Uri.fromFile(File(imagePathOrigin.replace("file:", "")))
+                        }
+                        startCrop(imageUri)
+                    } else {
+                        Toast.makeText(this@EditActivity, "Invalid image path", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                }
             }
 
         }
@@ -416,6 +463,39 @@ class EditActivity : AppCompatActivity() {
 
     }
 
+    private fun startCrop(imageUri: Uri) {
+        val destinationFileName = "cropped_image.jpg"
+        val destinationUri = Uri.fromFile(File(cacheDir, destinationFileName))
+        UCrop.of(imageUri, destinationUri)
+            .withMaxResultSize(1920, 1080)
+            .start(this)
+    }
+
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == Activity.RESULT_OK && requestCode == UCrop.REQUEST_CROP) {
+            val resultUri = UCrop.getOutput(data!!)
+            if (resultUri != null) {
+                preferences.clearImagePath()
+                resultUri.path?.let { preferences.saveImagePath(it) }
+                val imageCropped = BitmapFactory.decodeFile(resultUri.path)
+
+                if (imageCropped != null) {
+                    binding.paintView.updateBackgroundBitmap(imageCropped)
+                } else {
+                    Log.e("EditActivity", "Unable to decode bitmap from the cropped image URI.")
+                }
+            } else {
+                Log.e("EditActivity", "Result URI is null.")
+            }
+
+
+        } else if (resultCode == UCrop.RESULT_ERROR) {
+            val cropError = UCrop.getError(data!!)
+        }
+    }
+
     private fun applyHueFilter() {
 
         if (binding.paintView.backgroundBitmap != null) {
@@ -423,11 +503,11 @@ class EditActivity : AppCompatActivity() {
                 gpuImage.setImage(binding.paintView.backgroundBitmap)
                 gpuImage.setFilter(hueFilter)
                 val filteredBitmap = gpuImage.bitmapWithFilterApplied
-
                 withContext(Dispatchers.Main) {
                     if (filteredBitmap != null && filteredBitmap.width > 0 && filteredBitmap.height > 0) {
                         binding.paintView.backgroundBitmap = filteredBitmap
-                        binding.paintView.invalidate()
+                        binding.paintView.updateBackgroundBitmap(filteredBitmap)
+                        preferences.saveBackgroundBitmap(filteredBitmap)
                     } else {
                         Log.e(
                             "EditActivity",
@@ -512,12 +592,16 @@ class EditActivity : AppCompatActivity() {
     fun openInputText() {
         binding.apply {
             paintView.isTextBoxVisible = true
-            val slideUpAnimation = AnimationUtils.loadAnimation(this@EditActivity, R.anim.slide_up)
             layoutInputText.visibility = ConstraintLayout.VISIBLE
+            val slideUpAnimation = AnimationUtils.loadAnimation(this@EditActivity, R.anim.slide_up)
+
             layoutInputText.startAnimation(slideUpAnimation)
             tvInputText.isEnabled = true
             tvInputText.requestFocus()
-            inputMethodManager.showSoftInput(tvInputText, InputMethodManager.SHOW_IMPLICIT)
+
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(tvInputText, InputMethodManager.SHOW_IMPLICIT)
+
             tvEnteredText.visibility = View.GONE
         }
     }
@@ -546,6 +630,16 @@ class EditActivity : AppCompatActivity() {
             tvInputText.isEnabled = true
             tvInputText.requestFocus()
             inputMethodManager.showSoftInput(tvInputText, InputMethodManager.SHOW_IMPLICIT)
+
+            val rootView = window.decorView.findViewById<View>(android.R.id.content)
+            rootView.viewTreeObserver.addOnGlobalLayoutListener {
+                val rect = Rect()
+                rootView.getWindowVisibleDisplayFrame(rect)
+                val keyboardHeight = rootView.height - rect.height()
+                if (keyboardHeight > 200) {
+                    buttonContainer.translationY = -(keyboardHeight - 200).toFloat()
+                }
+            }
             textXEdit = x
             textYEdit = y
         }
@@ -581,53 +675,39 @@ class EditActivity : AppCompatActivity() {
 
     private fun saveImage(): Uri? {
         binding.apply {
-            val bitmap = paintView.canvasBitmap
+            val bitmap = paintView.canvasBitmap ?: return null
             val imageName = "edited_image_${System.currentTimeMillis()}.jpg"
-            val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-            } else {
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            val directory =
+                File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "photo_editor_app")
+            if (!directory.exists()) {
+                directory.mkdirs()
             }
 
-            val contentValues = ContentValues().apply {
-                put(MediaStore.Images.Media.DISPLAY_NAME, imageName)
-                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                put(MediaStore.Images.Media.WIDTH, bitmap?.width)
-                put(MediaStore.Images.Media.HEIGHT, bitmap?.height)
-                put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(
-                        MediaStore.Images.Media.RELATIVE_PATH, resources.getString(R.string.path)
-                    )
-                }
-            }
-
+            val file = File(directory, imageName)
             return try {
-                contentResolver.insert(imageCollection, contentValues)?.let { uri ->
-                    contentResolver.openOutputStream(uri).use { outputStream ->
-                        if (outputStream != null) {
-                            bitmap?.compress(
-                                Bitmap.CompressFormat.JPEG, 100, outputStream
-                            )
-                            Toast.makeText(
-                                this@EditActivity,
-                                R.string.save_image_successfully,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            uri
-                        } else {
-                            throw IOException(resources.getString(R.string.exception_cant_open_output_stream))
-                        }
-                    }
+                FileOutputStream(file).use { outputStream ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
                 }
-                    ?: throw IOException(resources.getString(R.string.exception_cant_create_record_in_media_store))
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(
+                        this@EditActivity,
+                        R.string.save_image_successfully,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+                Uri.fromFile(file)
             } catch (e: IOException) {
                 e.printStackTrace()
-                Toast.makeText(
-                    this@EditActivity,
-                    resources.getString(R.string.fail_to_save_image),
-                    Toast.LENGTH_SHORT
-                ).show()
+
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(
+                        this@EditActivity,
+                        R.string.fail_to_save_image,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
                 null
             }
         }
@@ -635,13 +715,12 @@ class EditActivity : AppCompatActivity() {
 
 
     @SuppressLint("ResourceType")
-    private fun setBrushColor(context: Context, paintView: PaintView, btnColorPicked: ImageView) {
+    private fun setBrushColor(context: Context, paintView: PaintView) {
         MaterialColorPickerDialog.Builder(context).setTitle(R.string.pick_color)
             .setColorShape(ColorShape.CIRCLE).setColorSwatch(ColorSwatch._300)
             .setDefaultColor(Color.BLACK).setColorListener { color, colorHex ->
                 paintView.setBrushColor(color);
-                val drawable = btnColorPicked.background.mutate()
-                drawable.setColorFilter(color, PorterDuff.Mode.SRC_IN)
+                binding.lineDraw.setBackgroundColor(color)
             }.show()
     }
 
@@ -656,9 +735,10 @@ class EditActivity : AppCompatActivity() {
                         binding.apply {
                             paintView.clearCanvas()
                             preferences.clearImagePath()
-                            paintView.updateBackgroundBitmap(bitmap)
                             preferences.saveImagePath(uri.toString())
-
+                            paintView.updateBackgroundBitmap(bitmap)
+                            preferences.clearImagePathOrigin()
+                            preferences.saveImagePathOrigin(uri.toString())
                         }
                         Log.d("EditActivity", "Bitmap size: ${bitmap.width} x ${bitmap.height}")
                     } catch (e: Exception) {
@@ -686,14 +766,5 @@ class EditActivity : AppCompatActivity() {
         binding.paintView.saveTextItems(preferences)
     }
 
-//    override fun onStop() {
-//        preferences.clearTextItems()
-//        super.onStop()
-//
-//    }
 
-    override fun onDestroy() {
-        preferences.clearImagePath()
-        super.onDestroy()
-    }
 }

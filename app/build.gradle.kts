@@ -45,6 +45,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation ("com.github.yalantis:ucrop:2.2.10")
     implementation (libs.firebase.storage.ktx)
     implementation(libs.gpuimage)
     implementation(libs.drawingview)

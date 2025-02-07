@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
+import com.example.editor_app_intern.customeview.DrawingPath
 import com.example.editor_app_intern.model.StickerLocal
 import com.example.editor_app_intern.model.TextItem
 import com.google.gson.Gson
@@ -23,6 +24,8 @@ class SharedPreferences(context: Context) {
         private const val TEXT_ITEMS_KEY = "text_items"
         private const val BACKGROUND_BITMAP_KEY = "background_bitmap"
         private const val STICKERS_KEY = "stickers"
+        private const val IMAGE_PATH_ORIGIN_KEY = "image_path_origin"
+        private const val PATHS_KEY = "drawing_paths"
     }
 
     fun saveTimerValue(timerValue: Long) {
@@ -117,5 +120,29 @@ class SharedPreferences(context: Context) {
 
     fun clearBackgroundBitmap() {
         sharedPreferences?.edit()?.remove(BACKGROUND_BITMAP_KEY)?.apply()
+    }
+    fun saveImagePathOrigin(imagePathOrigin: String) {
+        sharedPreferences?.edit()?.putString(IMAGE_PATH_ORIGIN_KEY, imagePathOrigin)?.apply()
+    }
+
+    fun getImagePathOrigin(): String? {
+        return sharedPreferences?.getString(IMAGE_PATH_ORIGIN_KEY, null)
+    }
+    fun clearImagePathOrigin() {
+        sharedPreferences?.edit()?.remove(IMAGE_PATH_ORIGIN_KEY)?.apply()
+    }
+    fun savePaths(paths: List<DrawingPath>) {
+        val json = Gson().toJson(paths)
+        sharedPreferences?.edit()?.putString(PATHS_KEY, json)?.apply()
+    }
+
+    fun getPaths(): List<DrawingPath>? {
+        val json = sharedPreferences?.getString(PATHS_KEY, null) ?: return null
+        val type = object : TypeToken<List<DrawingPath>>() {}.type
+        return Gson().fromJson(json, type)
+    }
+
+    fun clearPaths() {
+        sharedPreferences?.edit()?.remove(PATHS_KEY)?.apply()
     }
 }

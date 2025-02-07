@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:background="@color/bg_under_image"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.imagedetail.ImageDetailActivity">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar_home"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:scaleType="centerCrop"
+        android:id="@+id/iv_image_detail"
+        android:layout_width="@dimen/size_350dp"
+        android:layout_height="@dimen/size_600dp"
+        android:layout_marginTop="@dimen/size_30dp"
+        android:contentDescription="@null"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar_home" />
+
+    <ImageView
+        android:id="@+id/btn_edit"
+        android:layout_width="@dimen/size_25dp"
+        android:layout_height="@dimen/size_25dp"
+        android:layout_marginTop="@dimen/size_50dp"
+        android:background="@drawable/editing"
+        android:contentDescription="@null"
+        app:layout_constraintEnd_toStartOf="@+id/btn_delete_image"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/iv_image_detail" />
+
+    <ImageView
+        android:id="@+id/btn_delete_image"
+        android:layout_width="@dimen/size_25dp"
+        android:layout_height="@dimen/size_25dp"
+        android:layout_marginTop="@dimen/size_50dp"
+        android:background="@drawable/trash"
+        android:contentDescription="@null"
+        app:layout_constraintEnd_toStartOf="@+id/btn_share_image"
+        app:layout_constraintStart_toEndOf="@id/btn_edit"
+        app:layout_constraintTop_toBottomOf="@id/iv_image_detail" />
+
+    <ImageView
+        android:id="@+id/btn_share_image"
+        android:layout_width="@dimen/size_25dp"
+        android:layout_height="@dimen/size_25dp"
+        android:layout_marginTop="@dimen/size_50dp"
+        android:background="@drawable/share"
+        android:contentDescription="@null"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btn_delete_image"
+        app:layout_constraintTop_toBottomOf="@id/iv_image_detail" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

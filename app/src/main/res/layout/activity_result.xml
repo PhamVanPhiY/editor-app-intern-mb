@@ -27,16 +27,16 @@
         android:fontFamily="@font/poppins_bold"
         android:text="@string/saved_project"
         android:textSize="@dimen/size_16sp"
-        app:layout_constraintEnd_toStartOf="@id/btn_camera"
+        app:layout_constraintEnd_toStartOf="@id/btn_home"
         app:layout_constraintStart_toEndOf="@id/btn_close_app"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
         android:layout_marginStart="@dimen/size_30dp"
-        android:id="@+id/btn_camera"
+        android:id="@+id/btn_home"
         android:layout_width="@dimen/size_25dp"
         android:layout_height="@dimen/size_25dp"
-        android:background="@drawable/camera"
+        android:background="@drawable/icon_home"
         android:contentDescription="@null"
         app:layout_constraintBottom_toBottomOf="@id/btn_saved_text"
         app:layout_constraintEnd_toEndOf="parent"

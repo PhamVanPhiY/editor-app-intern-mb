@@ -8,6 +8,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.editor_app_intern.R
 import com.example.editor_app_intern.databinding.ActivityHomeBinding
+import com.example.editor_app_intern.ui.album.AlbumActivity
 import com.example.editor_app_intern.ui.camera.CameraActivity
 
 class HomeActivity : AppCompatActivity() {
@@ -27,11 +28,13 @@ class HomeActivity : AppCompatActivity() {
 
     private fun setUpView() {
         binding.apply {
-            setSupportActionBar(toolbarHome)
-            supportActionBar?.title = resources.getString(R.string.app_name)
 
             btnTakePhoto.setOnClickListener {
                 startActivity(Intent(this@HomeActivity, CameraActivity::class.java))
+            }
+
+            btnAlbum.setOnClickListener {
+                startActivity(Intent(this@HomeActivity, AlbumActivity::class.java))
             }
         }
     }

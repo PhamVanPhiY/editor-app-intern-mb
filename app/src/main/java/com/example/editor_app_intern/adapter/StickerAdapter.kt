@@ -51,7 +51,7 @@ class StickerAdapter(
                             heightSticker = 200f,
                             x = 100f,
                             y = (100f + StickerCountManager.count * 220f),
-                            false
+                            false,
                         )
 
 
@@ -86,14 +86,18 @@ class StickerAdapter(
         val storage = FirebaseStorage.getInstance()
         val storageRef = storage.getReferenceFromUrl(url)
 
-        val picturesDir =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+        val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
         val localFile = File(picturesDir, "$name.png")
 
-        storageRef.getFile(localFile).addOnSuccessListener(OnSuccessListener {
+        if (localFile.exists()) {
+            Log.d("StickerAdapter", "Sticker already exists: ${localFile.absolutePath}")
+            return
+        }
+
+        storageRef.getFile(localFile).addOnSuccessListener {
             Log.d("StickerAdapter", "Sticker downloaded successfully to: ${localFile.absolutePath}")
-            notifyDataSetChanged() // Để kiểm tra lại trạng thái download
-        }).addOnFailureListener {
+            notifyDataSetChanged()
+        }.addOnFailureListener {
             Log.e("StickerAdapter", "Failed to download sticker: ${it.message}")
         }
     }

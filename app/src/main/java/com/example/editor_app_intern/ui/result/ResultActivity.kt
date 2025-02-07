@@ -15,6 +15,7 @@ import com.example.editor_app_intern.constant.Constants.PATH_IMAGE_JUST_SAVED
 import com.example.editor_app_intern.databinding.ActivityResultBinding
 import com.example.editor_app_intern.ui.camera.CameraActivity
 import com.example.editor_app_intern.ui.edit.EditActivity
+import com.example.editor_app_intern.ui.home.HomeActivity
 
 class ResultActivity : AppCompatActivity() {
     private lateinit var binding: ActivityResultBinding
@@ -43,12 +44,12 @@ class ResultActivity : AppCompatActivity() {
                 val intent = Intent(this@ResultActivity, EditActivity::class.java)
                 intent.putExtra(IS_EDIT_AGAIN, true)
                 startActivity(intent)
+                finish()
             }
             btnCloseApp.setOnClickListener {
                 val builder = AlertDialog.Builder(this@ResultActivity)
                 builder.setTitle("Exit Application")
                 builder.setMessage("Are you sure you want to exit?")
-
                 builder.setPositiveButton("Yes") { dialog, which ->
                     preferences.clearStickers()
                     preferences.clearTextItems()
@@ -58,20 +59,20 @@ class ResultActivity : AppCompatActivity() {
                 }
 
                 builder.setNegativeButton("No") { dialog, which ->
-
                     dialog.dismiss()
                 }
 
                 val dialog = builder.create()
                 dialog.show()
             }
-            btnCamera.setOnClickListener {
+            btnHome.setOnClickListener {
                 preferences.clearStickers()
                 preferences.clearTextItems()
                 preferences.clearImagePath()
                 preferences.clearBackgroundBitmap()
-                val intent = Intent(this@ResultActivity, CameraActivity::class.java)
+                val intent = Intent(this@ResultActivity, HomeActivity::class.java)
                 startActivity(intent)
+                finish()
             }
         }
     }
@@ -80,7 +81,6 @@ class ResultActivity : AppCompatActivity() {
         val imageUriString = intent.getStringExtra(PATH_IMAGE_JUST_SAVED)
         if (imageUriString != null) {
             val imageUri = Uri.parse(imageUriString)
-
             binding.ivResult.setImageURI(imageUri)
         }
     }

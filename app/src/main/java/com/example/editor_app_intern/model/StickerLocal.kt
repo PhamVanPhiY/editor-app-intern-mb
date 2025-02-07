@@ -6,7 +6,7 @@ data class StickerLocal(
     var heightSticker: Float,
     var x: Float,
     var y: Float,
-    var isSelected: Boolean = false
+    var isSelected: Boolean = false,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

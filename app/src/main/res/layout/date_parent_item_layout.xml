@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <TextView
+        android:textSize="@dimen/size_16sp"
+        android:fontFamily="@font/poppins_medium"
+        android:text="20/1/2024"
+        android:layout_marginTop="@dimen/size_10dp"
+        android:layout_marginStart="@dimen/size_5dp"
+        android:id="@+id/tv_date_time"
+        app:layout_constraintStart_toEndOf="@id/dot"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:ignore="HardcodedText" />
+
+    <ImageView
+        android:layout_marginStart="@dimen/size_10dp"
+        android:contentDescription="@null"
+        android:id="@+id/dot"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tv_date_time"
+        app:layout_constraintTop_toTopOf="@id/tv_date_time"
+        app:layout_constraintBottom_toBottomOf="@id/tv_date_time"
+        android:background="@drawable/dot"
+        android:layout_width="@dimen/size_10dp"
+        android:layout_height="@dimen/size_10dp"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rcv_list_image_child"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/size_0dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_date_time"
+        tools:listitem="@layout/image_item_layout" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

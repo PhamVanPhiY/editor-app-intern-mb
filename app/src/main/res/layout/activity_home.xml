@@ -3,6 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
+    android:fitsSystemWindows="true"
+    android:background="@drawable/background_splash"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".ui.home.HomeActivity">
@@ -16,22 +18,46 @@
         app:layout_constraintTop_toTopOf="parent" />
     
     <androidx.appcompat.widget.AppCompatButton
+        android:background="@drawable/icon_camera_home"
         android:id="@+id/btn_take_photo"
-        android:text="@string/take_a_photo"
         app:layout_constraintTop_toBottomOf="@+id/toolbar_home"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btn_album"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/btn_album"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_width="@dimen/size_100dp"
+        android:layout_height="@dimen/size_100dp"/>
+
+    <TextView
+        android:layout_marginTop="@dimen/size_10dp"
+        android:textColor="@color/white"
+        android:fontFamily="@font/poppins_medium"
+        android:text="@string/take_a_photo"
+        app:layout_constraintTop_toBottomOf="@id/btn_take_photo"
+        android:id="@+id/lb_take_photo"
+        app:layout_constraintRight_toRightOf="@id/btn_take_photo"
+        app:layout_constraintLeft_toLeftOf="@id/btn_take_photo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btn_album"
-        android:text="@string/album"
-        app:layout_constraintTop_toBottomOf="@+id/btn_take_photo"
+        android:background="@drawable/album_home"
+        app:layout_constraintTop_toTopOf="@id/btn_take_photo"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btn_take_photo"
+        app:layout_constraintBottom_toBottomOf="@id/btn_take_photo"
+        android:layout_width="@dimen/size_100dp"
+        android:layout_height="@dimen/size_100dp"/>
+
+    <TextView
+        android:layout_marginTop="@dimen/size_10dp"
+        android:textColor="@color/white"
+        android:fontFamily="@font/poppins_medium"
+        android:text="@string/album"
+        app:layout_constraintTop_toBottomOf="@id/btn_album"
+        android:id="@+id/lb_album"
+        app:layout_constraintRight_toRightOf="@id/btn_album"
+        app:layout_constraintLeft_toLeftOf="@id/btn_album"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 

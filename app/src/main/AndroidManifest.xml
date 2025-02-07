@@ -22,19 +22,27 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.EditorAppIntern"
-        tools:targetApi="31">
+        tools:targetApi="34">
+        <activity
+            android:name=".ui.imagedetail.ImageDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ucrop.UcropActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.result.ResultActivity"
             android:exported="false" />
-
         <activity
             android:name=".ui.sticker.StickerActivity"
             android:exported="false" />
         <activity
             android:name=".ui.edit.EditActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustPan" />
-
+            android:windowSoftInputMode="adjustResize"/>
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
         <activity
             android:name=".ui.camera.CameraActivity"
             android:exported="false" />
@@ -46,6 +54,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -55,6 +64,16 @@
         <activity
             android:name=".ui.album.AlbumActivity"
             android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.example.editor_app_intern"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/paths" />
+        </provider>
     </application>
 
 </manifest>

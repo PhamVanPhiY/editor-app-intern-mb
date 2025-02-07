@@ -79,7 +79,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
     private val erasePaint = Paint().apply {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-        style = Paint.Style.STROKE
+        style = Paint.Style.FILL
         strokeCap = Paint.Cap.SQUARE
         strokeJoin = Paint.Join.MITER
         isAntiAlias = true
@@ -97,8 +97,8 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private val remover = context?.let { RemoveBg(it) }
     private var mX = 0f
     private var mY = 0f
-    private var selectedTextItem: TextItem? = null
-    private var selectedStickerItem: StickerLocal? = null
+    var selectedTextItem: TextItem? = null
+    var selectedStickerItem: StickerLocal? = null
     private val textItems = mutableListOf<TextItem>()
     val stickerItems = mutableListOf<StickerLocal>()
     private var previousBackgroundBitmap: Bitmap? = null
@@ -110,7 +110,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private var initialTouchX = 0f
     private var initialTouchY = 0f
     private var initialTouchStickerX = 0f
-    private  var preferences: SharedPreferences
+    private var preferences: SharedPreferences
     private var initialTouchStickerY = 0f
     private var isScalingSticker = false
     var isEraserEnabled: Boolean = false
@@ -126,10 +126,13 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     var touchTolerance: Float
     var canvasBitmap: Bitmap? = null
     var userText: String? = null
-    var pathSticker: String? = null
-    private var textX = 200f
-    private var textY = 200f
+    private var eraserRect: Rect? = null
+    private val eraserSize = 100
+
+
+
     private val iconEditText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.edit)
+    private val iconEditSticker: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.edit)
     private val iconDeleteText: Bitmap =
         BitmapFactory.decodeResource(resources, R.drawable.remove_text)
     private val iconDeleteSticker: Bitmap =
@@ -137,14 +140,17 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private val iconScaleText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.zoom)
     private val iconScaleSticker: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.zoom)
     private val iconRotateText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.reload)
-
+    private val iconRotateSticker: Bitmap =
+        BitmapFactory.decodeResource(resources, R.drawable.reload)
     private val iconWidth = 50
     private val iconHeight = 50
 
     private val deleteIconRect = Rect()
     private val deleteIconRectSticker = Rect()
     private val editIconRect = Rect()
+    private val editIconRectSticker = Rect()
     private val rotateIconRect = Rect()
+    private val rotateIconRectSticker = Rect()
     private val scaleIconRect = Rect()
     private val scaleIconRectSticker = Rect()
 
@@ -152,14 +158,19 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         Bitmap.createScaledBitmap(iconEditText, iconWidth, iconHeight, true)
     private val scaledIconDeleteText: Bitmap =
         Bitmap.createScaledBitmap(iconDeleteText, iconWidth, iconHeight, true)
-    private val scaledIconDeleteSticker: Bitmap =
-        Bitmap.createScaledBitmap(iconDeleteSticker, iconWidth, iconHeight, true)
     private val scaledIconScaleText: Bitmap =
         Bitmap.createScaledBitmap(iconScaleText, iconWidth, iconHeight, true)
-    private val scaledIconScaleSticker: Bitmap =
-        Bitmap.createScaledBitmap(iconScaleSticker, iconWidth, iconHeight, true)
     private val scaledIconRotateText: Bitmap =
         Bitmap.createScaledBitmap(iconRotateText, iconWidth, iconHeight, true)
+
+    private val scaledIconEditSticker: Bitmap =
+        Bitmap.createScaledBitmap(iconEditSticker, iconWidth, iconHeight, true)
+    private val scaledIconDeleteSticker: Bitmap =
+        Bitmap.createScaledBitmap(iconDeleteSticker, iconWidth, iconHeight, true)
+    private val scaledIconScaleSticker: Bitmap =
+        Bitmap.createScaledBitmap(iconScaleSticker, iconWidth, iconHeight, true)
+    private val scaledIconRotateSticker: Bitmap =
+        Bitmap.createScaledBitmap(iconRotateSticker, iconWidth, iconHeight, true)
     private var mCanvas: Canvas? = null
     var isDrawingEnabled: Boolean = false
     private val mBitmapPaint = Paint().apply {
@@ -187,6 +198,8 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                     Log.d("PaintView", "Output Bitmap size: ${it.width} x ${it.height}")
                     withContext(Dispatchers.Main) {
                         updateBackgroundBitmap(it)
+                        preferences.clearBackgroundBitmap()
+                        preferences.saveBackgroundBitmap(it)
                         progressBar.visibility = View.GONE
                     }
                 }
@@ -196,7 +209,12 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
     fun undoRemoveBackground() {
         previousBackgroundBitmap?.let {
-            updateBackgroundBitmap(it)
+            preferences.clearBackgroundBitmap()
+            preferences.saveBackgroundBitmap(it)
+            val backgroundBitmapBeforermBg = preferences.getBackgroundBitmap()
+            if (backgroundBitmapBeforermBg != null) {
+                updateBackgroundBitmap(backgroundBitmapBeforermBg)
+            }
             previousBackgroundBitmap = null
         }
     }
@@ -229,24 +247,20 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
 
         for (drawingPath in paths) {
-            if (isEraserEnabled) {
-                Log.d("PaintView", "isEraserEnabled: $isEraserEnabled")
-                mCanvas!!.drawPath(drawingPath.path, erasePaint)
-            } else {
-                mPaint.color = drawingPath.color
-                mPaint.strokeWidth = drawingPath.strokeWidth.toFloat()
-                mPaint.style = Paint.Style.STROKE
-                mCanvas!!.drawPath(drawingPath.path, mPaint)
-            }
+            mPaint.color = drawingPath.color
+            mPaint.strokeWidth = drawingPath.strokeWidth.toFloat()
+            mPaint.style = Paint.Style.STROKE
+            mCanvas!!.drawPath(drawingPath.path, mPaint)
+        }
+
+        if (isEraserEnabled && eraserRect != null) {
+            mCanvas!!.drawRect(eraserRect!!, erasePaint)
         }
         canvas.drawBitmap(canvasBitmap!!, 0f, 0f, mBitmapPaint)
-
         if (textItems.isNotEmpty()) {
             for (textItem in textItems) {
-                Log.d("List sticker:", "List text : $textItems")
                 val boundingRect: Rect
                 if (textItem == selectedTextItem && isTextBoxVisible) {
-                    Log.d("PaintView", "selectedTextItem: ${selectedTextItem!!.text}")
                     boundingRect = calculateTextBoundingRect(selectedTextItem!!)
                     mCanvas!!.drawRect(boundingRect, borderPaint)
                     drawTextIcons(
@@ -274,7 +288,6 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
 
         for (sticker in stickerItems) {
-            Log.d("List sticker:", "List sticker112233 : $stickerItems")
             val bitmapFromPath = BitmapFactory.decodeFile(sticker.path)
             if (bitmapFromPath != null) {
                 val scaledBitmap = Bitmap.createScaledBitmap(
@@ -297,23 +310,23 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                         (stickerRect.left - iconSize / 2 + iconSize + padding).toInt(),
                         (stickerRect.top - iconSize / 2 + iconSize + padding).toInt()
                     )
-                    mCanvas!!.drawBitmap(scaledIconDeleteText, null, deleteIconRectSticker, null)
+                    mCanvas!!.drawBitmap(scaledIconDeleteSticker, null, deleteIconRectSticker, null)
 
-                    editIconRect.set(
+                    editIconRectSticker.set(
                         (stickerRect.right - iconSize / 2 - padding).toInt(),
                         (stickerRect.top - iconSize / 2 - padding).toInt(),
                         (stickerRect.right - iconSize / 2 + iconSize + padding).toInt(),
                         (stickerRect.top - iconSize / 2 + iconSize + padding).toInt()
                     )
-                    mCanvas!!.drawBitmap(scaledIconEditText, null, editIconRect, null)
+                    mCanvas!!.drawBitmap(scaledIconEditSticker, null, editIconRectSticker, null)
 
-                    rotateIconRect.set(
+                    rotateIconRectSticker.set(
                         (stickerRect.left - iconSize / 2 - padding).toInt(),
                         (stickerRect.bottom - iconSize / 2 - padding).toInt(),
                         (stickerRect.left - iconSize / 2 + iconSize + padding).toInt(),
                         (stickerRect.bottom - iconSize / 2 + iconSize + padding).toInt()
                     )
-                    mCanvas!!.drawBitmap(scaledIconRotateText, null, rotateIconRect, null)
+                    mCanvas!!.drawBitmap(scaledIconRotateSticker, null, rotateIconRectSticker, null)
 
                     scaleIconRectSticker.set(
                         (stickerRect.right - iconSize / 2 - padding).toInt(),
@@ -333,16 +346,15 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     }
 
     fun startTouch(x: Float, y: Float) {
-        mPath = Path()
         if (isEraserEnabled) {
-
+            mPath = Path()
         } else {
+            mPath = Path()
             val drawingPath = DrawingPath(
                 brushColor, brushSize, mPath!!
             )
             paths.add(drawingPath)
         }
-        mPath!!.reset()
         mPath!!.moveTo(x, y)
         mX = x
         mY = y
@@ -387,42 +399,43 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     }
 
     private fun touchMove(x: Float, y: Float) {
-        if (mPath == null) {
-            return
-        }
+        if (isEraserEnabled) {
+            eraserRect = Rect(
+                (x - eraserSize / 2).toInt(),
+                (y - eraserSize / 2).toInt(),
+                (x + eraserSize / 2).toInt(),
+                (y + eraserSize / 2).toInt()
+            )
+            mCanvas!!.drawRect(eraserRect!!, erasePaint)
+        } else if (mPath != null) {
 
-        val dx = abs((x - mX).toDouble()).toFloat()
-        val dy = abs((y - mY).toDouble()).toFloat()
+            val dx = abs((x - mX).toDouble()).toFloat()
+            val dy = abs((y - mY).toDouble()).toFloat()
 
-        if (dx >= touchTolerance || dy >= touchTolerance) {
-            if (isEraserEnabled) {
-                mPath!!.lineTo(x, y)
-            } else {
+            if (dx >= touchTolerance || dy >= touchTolerance) {
                 mPath!!.quadTo(mX, mY, (x + mX) / 2, (y + mY) / 2)
+                mCanvas!!.drawPath(mPath!!, mPaint)
+                mX = x
+                mY = y
             }
-            mX = x
-            mY = y
-            invalidate()
         }
+        invalidate()
     }
 
-
     private fun touchUp() {
-        if (mPath != null) {
-            if (isEraserEnabled) {
-                mPath!!.lineTo(mX, mY)
-                mCanvas!!.drawPath(mPath!!, erasePaint)
-                mPath = null
-            } else {
+        if (isEraserEnabled) {
+            if (eraserRect != null) {
+                mCanvas!!.drawRect(eraserRect!!, erasePaint)
+                eraserRect = null
+            }
+        } else {
+            if (mPath != null) {
                 mPath!!.lineTo(mX, mY)
                 paths.add(DrawingPath(brushColor, brushSize, mPath!!))
                 mPath = null
             }
-            invalidate()
-
-        } else {
-            Log.e("PaintView", "mPath is null in touchUp()")
         }
+        invalidate()
     }
 
 
@@ -524,7 +537,6 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                 } else {
                     if (isStickerTextBoxVisible) {
                         isStickerTextBoxVisible = false
-                        Log.d("isStickerVisible", "isStickerVisible = $isStickerTextBoxVisible")
                         invalidate()
                     }
 
@@ -564,17 +576,17 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                     preferences.saveSticker(selectedStickerItem!!)
 
                 } else if (isScalingSticker && selectedStickerItem != null) {
-                        val dx = x - initialTouchX
-                        val dy = y - initialTouchY
-                        val newWidth = (selectedStickerItem!!.widthSticker + dx).coerceAtLeast(50f)
-                        val newHeight = (selectedStickerItem!!.heightSticker + dy).coerceAtLeast(50f)
-                        selectedStickerItem!!.widthSticker = newWidth
-                        selectedStickerItem!!.heightSticker = newHeight
-                        initialTouchX = x
-                        initialTouchY = y
-                        invalidate()
-                        preferences.saveSticker(selectedStickerItem!!)
-                } else {
+                    val dx = x - initialTouchX
+                    val dy = y - initialTouchY
+                    val newWidth = (selectedStickerItem!!.widthSticker + dx).coerceAtLeast(50f)
+                    val newHeight = (selectedStickerItem!!.heightSticker + dy).coerceAtLeast(50f)
+                    selectedStickerItem!!.widthSticker = newWidth
+                    selectedStickerItem!!.heightSticker = newHeight
+                    initialTouchX = x
+                    initialTouchY = y
+                    invalidate()
+                    preferences.saveSticker(selectedStickerItem!!)
+                }else {
                     if (isEraserEnabled) {
                         touchMove(x, y)
                     } else if (isDrawingEnabled) {
@@ -591,7 +603,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                     isDraggingSticker = false
                 } else if (isScalingSticker) {
                     isScalingSticker = false
-                } else {
+                }  else {
                     if (isEraserEnabled) {
                         touchUp()
                     } else if (isDrawingEnabled) {
@@ -610,6 +622,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
         return true
     }
+
 
     private fun onEditTextItem(selectedTextItem: TextItem) {
         textItems.remove(selectedTextItem)
