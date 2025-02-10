@@ -31,6 +31,7 @@ class HomeActivity : AppCompatActivity() {
 
             btnTakePhoto.setOnClickListener {
                 startActivity(Intent(this@HomeActivity, CameraActivity::class.java))
+                finish()
             }
 
             btnAlbum.setOnClickListener {
