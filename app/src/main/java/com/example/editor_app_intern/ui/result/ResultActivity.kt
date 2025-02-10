@@ -43,6 +43,7 @@ class ResultActivity : AppCompatActivity() {
                 val intent = Intent(this@ResultActivity, EditActivity::class.java)
                 intent.putExtra(IS_EDIT_AGAIN, true)
                 startActivity(intent)
+                finish()
             }
             btnCloseApp.setOnClickListener {
                 val builder = AlertDialog.Builder(this@ResultActivity)
@@ -72,6 +73,7 @@ class ResultActivity : AppCompatActivity() {
                 preferences.clearBackgroundBitmap()
                 val intent = Intent(this@ResultActivity, CameraActivity::class.java)
                 startActivity(intent)
+                finish()
             }
         }
     }

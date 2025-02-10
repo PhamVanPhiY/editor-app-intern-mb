@@ -3,6 +3,7 @@ package com.example.editor_app_intern.ui.splash
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -25,13 +26,27 @@ class SplashActivity : AppCompatActivity() {
             insets
         }
         setUpView()
+        hideStatusBar()
     }
 
     private fun setUpView() {
         binding.apply {
             btnTryNow.setOnClickListener {
                 startActivity(Intent(this@SplashActivity, CameraActivity::class.java))
+                finish()
             }
+
+        }
+    }
+    private fun hideStatusBar() {
+        val decorView = window.decorView
+        decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            hideStatusBar()
         }
     }
 }

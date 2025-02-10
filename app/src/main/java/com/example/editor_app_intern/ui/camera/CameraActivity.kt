@@ -104,8 +104,20 @@ class CameraActivity : AppCompatActivity() {
         })
 
         setUpView()
+        hideStatusBar()
     }
 
+    private fun hideStatusBar() {
+        val decorView = window.decorView
+        decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            hideStatusBar()
+        }
+    }
     private fun setUpFilterRecyclerView(filterList: List<FilterCamera>) {
         val filterAdapter = FilterCameraAdapter(filterList) { filterCamera ->
             applyFilter(filterCamera)

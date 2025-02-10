@@ -97,8 +97,8 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private val remover = context?.let { RemoveBg(it) }
     private var mX = 0f
     private var mY = 0f
-    private var selectedTextItem: TextItem? = null
-    private var selectedStickerItem: StickerLocal? = null
+    var selectedTextItem: TextItem? = null
+    var selectedStickerItem: StickerLocal? = null
     private val textItems = mutableListOf<TextItem>()
     val stickerItems = mutableListOf<StickerLocal>()
     private var previousBackgroundBitmap: Bitmap? = null
@@ -110,7 +110,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private var initialTouchX = 0f
     private var initialTouchY = 0f
     private var initialTouchStickerX = 0f
-    private  var preferences: SharedPreferences
+    private var preferences: SharedPreferences
     private var initialTouchStickerY = 0f
     private var isScalingSticker = false
     var isEraserEnabled: Boolean = false
@@ -564,16 +564,16 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                     preferences.saveSticker(selectedStickerItem!!)
 
                 } else if (isScalingSticker && selectedStickerItem != null) {
-                        val dx = x - initialTouchX
-                        val dy = y - initialTouchY
-                        val newWidth = (selectedStickerItem!!.widthSticker + dx).coerceAtLeast(50f)
-                        val newHeight = (selectedStickerItem!!.heightSticker + dy).coerceAtLeast(50f)
-                        selectedStickerItem!!.widthSticker = newWidth
-                        selectedStickerItem!!.heightSticker = newHeight
-                        initialTouchX = x
-                        initialTouchY = y
-                        invalidate()
-                        preferences.saveSticker(selectedStickerItem!!)
+                    val dx = x - initialTouchX
+                    val dy = y - initialTouchY
+                    val newWidth = (selectedStickerItem!!.widthSticker + dx).coerceAtLeast(50f)
+                    val newHeight = (selectedStickerItem!!.heightSticker + dy).coerceAtLeast(50f)
+                    selectedStickerItem!!.widthSticker = newWidth
+                    selectedStickerItem!!.heightSticker = newHeight
+                    initialTouchX = x
+                    initialTouchY = y
+                    invalidate()
+                    preferences.saveSticker(selectedStickerItem!!)
                 } else {
                     if (isEraserEnabled) {
                         touchMove(x, y)
@@ -685,6 +685,8 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     fun updateBackgroundBitmap(bitmap: Bitmap) {
         val scaledBitmap = Bitmap.createScaledBitmap(bitmap, width, height, true)
         backgroundBitmap = scaledBitmap
+//        preferences.clearBackgroundBitmap()
+//        preferences.saveBackgroundBitmap(backgroundBitmap!!)
         invalidate()
     }
 

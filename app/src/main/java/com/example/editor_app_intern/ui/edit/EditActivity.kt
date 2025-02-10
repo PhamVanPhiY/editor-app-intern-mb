@@ -59,6 +59,7 @@ import jp.co.cyberagent.android.gpuimage.GPUImage
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageHueFilter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -116,6 +117,10 @@ class EditActivity : AppCompatActivity() {
             loadImageEditAgain()
         }
         val imagePath = preferences.getImagePath()
+        val backgroundBeforeStickerOpen = preferences.getBackgroundBitmap()
+        if (backgroundBeforeStickerOpen != null) {
+            binding.paintView.backgroundBitmap = backgroundBeforeStickerOpen
+        }
         progressBarRemoveBackground = binding.progressBar
         imagePath?.let {
             var originalBitmap = BitmapFactory.decodeFile(it)
@@ -350,16 +355,32 @@ class EditActivity : AppCompatActivity() {
 
 
             btnSave.setOnClickListener {
-                paintView.isTextBoxVisible = false
-                paintView.isStickerTextBoxVisible = false
-                paintView.backgroundBitmap?.let { it1 -> preferences.saveBackgroundBitmap(it1) }
-                paintView.invalidate()
-                savedImageURI = saveImage().toString()
-                val intent = Intent(this@EditActivity, ResultActivity::class.java).apply {
-                    putExtra(PATH_IMAGE_JUST_SAVED, savedImageURI)
-                }
-                startActivity(intent)
+                CoroutineScope(Dispatchers.Main).launch {
+                    paintView.isTextBoxVisible = false
+                    paintView.isStickerTextBoxVisible = false
+                    paintView.selectedTextItem = null
+                    paintView.selectedStickerItem = null
 
+                    val saveBitmapDeferred = async(Dispatchers.IO) {
+                        paintView.backgroundBitmap?.let { bitmap ->
+                            preferences.saveBackgroundBitmap(bitmap)
+                        }
+                    }
+                    saveBitmapDeferred.await()
+
+                    paintView.invalidate()
+
+                    val saveImageDeferred = async(Dispatchers.IO) {
+                        saveImage().toString()
+                    }
+                    savedImageURI = saveImageDeferred.await()
+
+                    val intent = Intent(this@EditActivity, ResultActivity::class.java).apply {
+                        putExtra(PATH_IMAGE_JUST_SAVED, savedImageURI)
+                    }
+                    startActivity(intent)
+                    finish()
+                }
             }
 
             btnHue.setOnClickListener {
@@ -369,6 +390,8 @@ class EditActivity : AppCompatActivity() {
             btnSticker.setOnClickListener {
                 startActivity(Intent(this@EditActivity, StickerActivity::class.java))
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                finish()
+
             }
 
         }
@@ -596,9 +619,7 @@ class EditActivity : AppCompatActivity() {
                 put(MediaStore.Images.Media.HEIGHT, bitmap?.height)
                 put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(
-                        MediaStore.Images.Media.RELATIVE_PATH, resources.getString(R.string.path)
-                    )
+                    put(MediaStore.Images.Media.RELATIVE_PATH, resources.getString(R.string.path))
                 }
             }
 
@@ -606,14 +627,16 @@ class EditActivity : AppCompatActivity() {
                 contentResolver.insert(imageCollection, contentValues)?.let { uri ->
                     contentResolver.openOutputStream(uri).use { outputStream ->
                         if (outputStream != null) {
-                            bitmap?.compress(
-                                Bitmap.CompressFormat.JPEG, 100, outputStream
-                            )
-                            Toast.makeText(
-                                this@EditActivity,
-                                R.string.save_image_successfully,
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+
+                            CoroutineScope(Dispatchers.Main).launch {
+                                Toast.makeText(
+                                    this@EditActivity,
+                                    R.string.save_image_successfully,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+
                             uri
                         } else {
                             throw IOException(resources.getString(R.string.exception_cant_open_output_stream))
@@ -623,11 +646,15 @@ class EditActivity : AppCompatActivity() {
                     ?: throw IOException(resources.getString(R.string.exception_cant_create_record_in_media_store))
             } catch (e: IOException) {
                 e.printStackTrace()
-                Toast.makeText(
-                    this@EditActivity,
-                    resources.getString(R.string.fail_to_save_image),
-                    Toast.LENGTH_SHORT
-                ).show()
+
+                CoroutineScope(Dispatchers.Main).launch {
+                    Toast.makeText(
+                        this@EditActivity,
+                        resources.getString(R.string.fail_to_save_image),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
                 null
             }
         }
@@ -694,6 +721,8 @@ class EditActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         preferences.clearImagePath()
+//        preferences.clearStickers()
+//        preferences.clearTextItems()
         super.onDestroy()
     }
 }
