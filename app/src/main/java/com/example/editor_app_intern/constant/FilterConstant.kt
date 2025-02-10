@@ -17,4 +17,5 @@ object Constants {
     const val IS_EDIT_AGAIN= "isEditAgain"
     const val PATH_IMAGE_FROM_ALBUM = "imageUri"
     const val FOLDER_IMAGE_EDITED = "/storage/emulated/0/Android/data/com.example.editor_app_intern/files/Pictures/photo_editor_app"
+    const val STICKER_DATA = "sticker_data"
 }

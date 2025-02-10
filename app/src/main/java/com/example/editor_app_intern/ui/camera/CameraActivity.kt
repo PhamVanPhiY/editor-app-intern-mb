@@ -102,7 +102,7 @@ class CameraActivity : AppCompatActivity() {
         cameraViewModel.filters.observe(this, { filterList ->
             setUpFilterRecyclerView(filterList)
         })
-
+        clearFullSharePreference()
         setUpView()
         requestRuntimePermission()
     }
@@ -135,7 +135,14 @@ class CameraActivity : AppCompatActivity() {
         }
         gpuImageView.requestRender()
     }
-
+    private fun clearFullSharePreference(){
+        preferences.clearPaths()
+        preferences.clearStickers()
+        preferences.clearBackgroundBitmap()
+        preferences.clearTextItems()
+        preferences.clearImagePathOrigin()
+        preferences.clearImagePath()
+    }
     private fun setUpView() {
         supportActionBar?.hide()
 
@@ -305,7 +312,6 @@ class CameraActivity : AppCompatActivity() {
             }
             startActivity(intent)
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
-            finish()
         }
     }
 
@@ -469,6 +475,7 @@ class CameraActivity : AppCompatActivity() {
                 showPermissionRequiredDialog()
             }
         }
+        clearFullSharePreference()
 
     }
 }

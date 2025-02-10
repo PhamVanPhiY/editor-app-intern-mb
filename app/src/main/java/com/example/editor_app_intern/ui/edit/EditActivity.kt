@@ -41,6 +41,7 @@ import com.example.editor_app_intern.SharedPreferences
 import com.example.editor_app_intern.adapter.FontAdapter
 import com.example.editor_app_intern.constant.Constants.IS_EDIT_AGAIN
 import com.example.editor_app_intern.constant.Constants.PATH_IMAGE_JUST_SAVED
+import com.example.editor_app_intern.constant.Constants.STICKER_DATA
 import com.example.editor_app_intern.customeview.PaintView
 import com.example.editor_app_intern.databinding.ActivityEditBinding
 import com.example.editor_app_intern.dialog.NotificationDialog
@@ -48,6 +49,7 @@ import com.example.editor_app_intern.dialog.OptionDialog
 import com.example.editor_app_intern.extension.atLeastVersionUpSideDownCake
 import com.example.editor_app_intern.helper.PermissionHelper.PERMISSIONS
 import com.example.editor_app_intern.model.FontItem
+import com.example.editor_app_intern.model.StickerLocal
 import com.example.editor_app_intern.model.TextItem
 import com.example.editor_app_intern.ui.album.AlbumActivity
 import com.example.editor_app_intern.ui.result.ResultActivity
@@ -87,9 +89,9 @@ class EditActivity : AppCompatActivity() {
     private var sizeText: Float = 40f
     private var textXEdit: Float = 0f
     private var textYEdit: Float = 0f
-    private var savedImageURI: String? = null
     private var isCheckDraw = false
     private lateinit var imagePath: String
+    private val REQUEST_CODE_STICKER = 1
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -129,7 +131,7 @@ class EditActivity : AppCompatActivity() {
                             paintViewHeight,
                             true
                         )
-                        binding.paintView.updateBackgroundBitmap(scaledBackgroundBitmap)
+                        binding.paintView.updateBackgroundBitmap(backgroundBitmap)
                         Log.d(
                             "EditActivity",
                             "Scaled Background Bitmap size: ${scaledBackgroundBitmap.width} x ${scaledBackgroundBitmap.height}"
@@ -167,7 +169,7 @@ class EditActivity : AppCompatActivity() {
                                 paintViewHeight,
                                 true
                             )
-                            binding.paintView.updateBackgroundBitmap(scaledBitmap)
+                            binding.paintView.updateBackgroundBitmap(originalBitmap)
                             Log.d(
                                 "EditActivity",
                                 "Scaled Bitmap size: ${scaledBitmap.width} x ${scaledBitmap.height}"
@@ -195,7 +197,6 @@ class EditActivity : AppCompatActivity() {
         setUpLauncher()
         setUpView()
         upLoadPhotoFromPhotoPicker()
-        setUpGetSticker()
     }
 
     override fun finish() {
@@ -206,6 +207,7 @@ class EditActivity : AppCompatActivity() {
     private fun setUpGetSticker() {
         preferences = SharedPreferences(this)
         val savedStickers = preferences.getStickers()
+        binding.paintView.stickerItems.clear()
         binding.paintView.stickerItems.addAll(savedStickers)
     }
 
@@ -408,7 +410,8 @@ class EditActivity : AppCompatActivity() {
 
             btnSticker.setOnClickListener {
                 preferences.savePaths(paintView.paths)
-                startActivity(Intent(this@EditActivity, StickerActivity::class.java))
+                val intent = Intent(this@EditActivity, StickerActivity::class.java)
+                startActivityForResult(intent, REQUEST_CODE_STICKER)
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
 
@@ -485,29 +488,42 @@ class EditActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK && requestCode == UCrop.REQUEST_CROP) {
-            val resultUri = UCrop.getOutput(data!!)
-            if (resultUri != null) {
-                preferences.clearImagePath()
-                resultUri.path?.let { preferences.saveImagePath(it) }
-                val imageCropped = BitmapFactory.decodeFile(resultUri.path)
 
-                if (imageCropped != null) {
-                    binding.paintView.updateBackgroundBitmap(imageCropped)
-                    preferences.saveBackgroundBitmap(imageCropped)
-                } else {
-                    Log.e("EditActivity", "Unable to decode bitmap from the cropped image URI.")
+        when (requestCode) {
+            UCrop.REQUEST_CROP -> {
+                if (resultCode == Activity.RESULT_OK) {
+                    val resultUri = UCrop.getOutput(data!!)
+                    if (resultUri != null) {
+                        preferences.clearImagePath()
+                        resultUri.path?.let { preferences.saveImagePath(it) }
+                        val imageCropped = BitmapFactory.decodeFile(resultUri.path)
+
+                        if (imageCropped != null) {
+                            binding.paintView.updateBackgroundBitmap(imageCropped)
+                            preferences.saveBackgroundBitmap(imageCropped)
+                        } else {
+                            Log.e("EditActivity", "Unable to decode bitmap from the cropped image URI.")
+                        }
+                    } else {
+                        Log.e("EditActivity", "Result URI is null.")
+                    }
+                } else if (resultCode == UCrop.RESULT_ERROR) {
+                    val cropError = UCrop.getError(data!!)
+                    Log.e("EditActivity", "Crop error: ${cropError?.message}")
                 }
-            } else {
-                Log.e("EditActivity", "Result URI is null.")
             }
-
-
-        } else if (resultCode == UCrop.RESULT_ERROR) {
-            val cropError = UCrop.getError(data!!)
+            REQUEST_CODE_STICKER -> {
+                if (resultCode == Activity.RESULT_OK) {
+                    val stickerLocal: StickerLocal? = data?.getParcelableExtra(STICKER_DATA)
+                    stickerLocal?.let {
+                        setUpGetSticker()
+                    } ?: run {
+                        Log.e("EditActivity", "Sticker data is null.")
+                    }
+                }
+            }
         }
     }
-
     private fun applyHueFilter() {
 
         if (binding.paintView.backgroundBitmap != null) {

@@ -1,7 +1,6 @@
 package com.example.editor_app_intern.adapter
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.os.Environment
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,15 +8,10 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.editor_app_intern.R
-import com.example.editor_app_intern.SharedPreferences
 import com.example.editor_app_intern.databinding.StickerItemLayoutBinding
 import com.example.editor_app_intern.model.Sticker
-import com.example.editor_app_intern.model.StickerCountManager
-import com.example.editor_app_intern.model.StickerLocal
-import com.example.editor_app_intern.ui.edit.EditActivity
 import com.google.firebase.storage.FirebaseStorage
 import java.io.File
-import java.util.UUID
 
 
 class StickerAdapter(
@@ -38,27 +32,7 @@ class StickerAdapter(
                 if (isStickerDownloaded(item.name)) {
                     btnDownloadSticker.visibility = ViewGroup.GONE
                     cwItem.setOnClickListener {
-                        val context = binding.root.context
-                        val intent = Intent(context, EditActivity::class.java)
-                        val localFile = File(
-                            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-                            "${item.name}.png"
-                        )
-                        val stickerLocal = StickerLocal(
-                            id = UUID.randomUUID().toString(),
-                            path = localFile.absolutePath,
-                            widthSticker = 200f,
-                            heightSticker = 200f,
-                            x = 100f,
-                            y = (100f + StickerCountManager.count * 220f),
-                            false,
-                        )
-
-
-                        val sharedPrefs = SharedPreferences(binding.root.context)
-                        sharedPrefs.saveSticker(stickerLocal)
-                        StickerCountManager.count++
-                        context.startActivity(intent)
+                        onStickerClick(item)
                     }
                 } else {
                     btnDownloadSticker.setOnClickListener {

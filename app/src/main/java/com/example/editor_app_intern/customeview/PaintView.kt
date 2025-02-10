@@ -292,6 +292,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         }
 
         for (sticker in stickerItems) {
+            Log.d("PaintView", "Sticker path: ${sticker.path}")
             val bitmapFromPath = BitmapFactory.decodeFile(sticker.path)
             if (bitmapFromPath != null) {
                 val scaledBitmap = Bitmap.createScaledBitmap(
