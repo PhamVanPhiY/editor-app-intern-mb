@@ -24,11 +24,10 @@ class DateAdapter(
         fun bind(item: Date) {
             binding.apply {
                 tvDateTime.text = item.day
-
-                val sortedImages = item.imageModel.sortedByDescending { it.timestamp }
+//                val sortedImages = item.imageModel.sortedByDescending { it.timestamp }
                 rcvListImageChild.layoutManager = GridLayoutManager(itemView.context,2)
                 rcvListImageChild.adapter = ImageAdapter(
-                    sortedImages,
+                    item.imageModel,
                     onImageClick = { image ->
                         val context = itemView.context as? Activity
                         val intent = Intent(context, ImageDetailActivity::class.java)
@@ -55,4 +54,9 @@ class DateAdapter(
     }
 
     override fun getItemCount(): Int = dates.size
+
+    fun updateDates(newDates: List<Date>) {
+        dates = newDates
+        notifyDataSetChanged()
+    }
 }

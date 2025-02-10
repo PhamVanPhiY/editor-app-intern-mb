@@ -76,6 +76,7 @@ class CameraActivity : AppCompatActivity() {
     private var bitmap: Bitmap? = null
     private var isFilterVisible = false
     private var isTimeVisible = false
+    private var isResumeEnable = false
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -354,23 +355,27 @@ class CameraActivity : AppCompatActivity() {
                         this, it
                     )
                 }) {
-                AlertDialog.Builder(this).setTitle(R.string.permission_required)
-                    .setMessage(R.string.rationale_camera_permission).setCancelable(false)
-                    .setPositiveButton(R.string.settings) { dialog, _ ->
-                        Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = android.net.Uri.fromParts("package", packageName, null)
-                            startActivity(this)
-                            finish()
-                        }
-                        dialog.dismiss()
-                    }.setNegativeButton(R.string.cancel) { dialog, _ ->
-                        dialog.dismiss()
-                        finish()
-                    }.show()
+                showPermissionRequiredDialog()
             } else {
                 requestRuntimePermission()
             }
         }
+    }
+
+    private fun showPermissionRequiredDialog() {
+        AlertDialog.Builder(this).setTitle(R.string.permission_required)
+            .setMessage(R.string.rationale_camera_permission).setCancelable(false)
+            .setPositiveButton(R.string.settings) { dialog, _ ->
+                Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = android.net.Uri.fromParts("package", packageName, null)
+                    startActivity(this)
+                    isResumeEnable = true
+                }
+                dialog.dismiss()
+            }.setNegativeButton(R.string.cancel) { dialog, _ ->
+                dialog.dismiss()
+                requestRuntimePermission()
+            }.show()
     }
 
 
@@ -454,12 +459,17 @@ class CameraActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (ContextCompat.checkSelfPermission(
-                this, REQUIRED_PERMISSIONS[0]
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            startCamera()
+        if (isResumeEnable) {
+            if (ContextCompat.checkSelfPermission(
+                    this, REQUIRED_PERMISSIONS[0]
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                startCamera()
+            } else {
+                showPermissionRequiredDialog()
+            }
         }
+
     }
 }
 

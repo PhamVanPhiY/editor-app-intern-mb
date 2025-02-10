@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@color/bg_under_image"
+    android:padding="@dimen/size_10dp"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/dialog_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:fontFamily="@font/poppins_bold"
+        android:paddingBottom="@dimen/size_15dp"
+        android:text="@string/display_options"
+        android:textSize="@dimen/size_16sp"
+        android:textStyle="bold" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:background="@drawable/background_button_try_it_now"
+        android:id="@+id/btn_latest"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginBottom="8dp"
+        android:padding="@dimen/size_10dp"
+        android:text="@string/newest"
+        android:textAllCaps="false"
+        android:textSize="@dimen/size_16sp" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:background="@drawable/background_button_try_it_now"
+        android:padding="@dimen/size_10dp"
+        android:id="@+id/btn_oldest"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginBottom="8dp"
+        android:text="@string/oldest"
+        android:textAllCaps="false"
+        android:textSize="@dimen/size_16sp" />
+
+</LinearLayout>

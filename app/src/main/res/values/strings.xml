@@ -58,4 +58,8 @@
     <string name="delete_image_successfully">Delete image successfully</string>
     <string name="image_does_not_exist">Image does not exist</string>
     <string name="not_found">No images available</string>
+    <string name="display_options">Display options</string>
+    <string name="newest">Newest to oldest</string>
+    <string name="close">Close</string>
+    <string name="oldest">Oldest to newest</string>
 </resources>

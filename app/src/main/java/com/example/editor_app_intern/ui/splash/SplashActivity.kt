@@ -11,7 +11,6 @@ import androidx.core.view.WindowInsetsCompat
 import com.example.editor_app_intern.R
 import com.example.editor_app_intern.SharedPreferences
 import com.example.editor_app_intern.databinding.ActivitySplashBinding
-import com.example.editor_app_intern.ui.camera.CameraActivity
 import com.example.editor_app_intern.ui.home.HomeActivity
 
 @SuppressLint("CustomSplashScreen")
@@ -32,9 +31,10 @@ class SplashActivity : AppCompatActivity() {
         preferences.apply {
             clearImagePathOrigin()
             clearStickers()
-            clearStickers()
+            clearTextItems()
             clearImagePath()
             clearBackgroundBitmap()
+            clearPaths()
         }
         setUpView()
     }

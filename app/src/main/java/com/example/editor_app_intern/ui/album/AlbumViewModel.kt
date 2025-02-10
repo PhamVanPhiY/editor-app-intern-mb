@@ -42,4 +42,20 @@ class AlbumViewModel : ViewModel() {
             _dates.value = dateList
         }
     }
+
+    fun sortImagesByNewest() {
+        _dates.value = _dates.value
+            ?.sortedByDescending { date -> date.imageModel.maxOfOrNull { it.timestamp } }
+            ?.map { date ->
+                date.copy(imageModel = date.imageModel.sortedByDescending { it.timestamp })
+            }
+    }
+
+    fun sortImagesByOldest() {
+        _dates.value = _dates.value
+            ?.sortedBy { date -> date.imageModel.minOfOrNull { it.timestamp } }
+            ?.map { date ->
+                date.copy(imageModel = date.imageModel.sortedBy { it.timestamp })
+            }
+    }
 }

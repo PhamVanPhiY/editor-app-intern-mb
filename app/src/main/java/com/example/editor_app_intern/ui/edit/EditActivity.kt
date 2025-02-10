@@ -2,6 +2,7 @@ package com.example.editor_app_intern.ui.edit
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -10,10 +11,10 @@ import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.Typeface
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.os.Handler
-import android.os.Looper
+import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
 import android.view.View
@@ -32,6 +33,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.editor_app_intern.R
@@ -58,7 +60,6 @@ import jp.co.cyberagent.android.gpuimage.GPUImage
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageHueFilter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -226,6 +227,7 @@ class EditActivity : AppCompatActivity() {
 
             btnEraser.setOnClickListener {
                 paintView.clearCanvas()
+                preferences.clearPaths()
             }
 
             btnUndo.setOnClickListener {
@@ -257,6 +259,8 @@ class EditActivity : AppCompatActivity() {
 
 
             btnSelectImage.setOnClickListener {
+                preferences.savePaths(paintView.paths)
+                Log.d("EditActivity", "Path list from sp ${preferences.getPaths()}")
                 launchPhoToPicker()
             }
             val inputMethodManager =
@@ -363,32 +367,39 @@ class EditActivity : AppCompatActivity() {
 
 
             btnSave.setOnClickListener {
-                CoroutineScope(Dispatchers.Main).launch {
-                    paintView.isTextBoxVisible = false
-                    paintView.isStickerTextBoxVisible = false
-                    paintView.selectedTextItem = null
-                    paintView.selectedStickerItem = null
+                preferences.savePaths(paintView.paths)
 
-                    val saveBitmapDeferred = async(Dispatchers.IO) {
-                        paintView.backgroundBitmap?.let { bitmap ->
-                            preferences.saveBackgroundBitmap(bitmap)
+                paintView.isTextBoxVisible = false
+                paintView.isStickerTextBoxVisible = false
+                paintView.selectedTextItem = null
+                paintView.selectedStickerItem = null
+
+                paintView.viewTreeObserver.addOnPreDrawListener(object :
+                    ViewTreeObserver.OnPreDrawListener {
+                    override fun onPreDraw(): Boolean {
+                        paintView.viewTreeObserver.removeOnPreDrawListener(this)
+
+                        CoroutineScope(Dispatchers.IO).launch {
+                            paintView.backgroundBitmap?.let { bitmap ->
+                                preferences.saveBackgroundBitmap(bitmap)
+                            }
+
+                            val savedImageURI = saveImageAndCopyToDirectory().toString()
+
+                            withContext(Dispatchers.Main) {
+                                val intent =
+                                    Intent(this@EditActivity, ResultActivity::class.java).apply {
+                                        putExtra(PATH_IMAGE_JUST_SAVED, savedImageURI)
+                                    }
+                                startActivity(intent)
+                                finish()
+                            }
                         }
+                        return true
                     }
-                    saveBitmapDeferred.await()
+                })
 
-                    paintView.invalidate()
-
-                    val saveImageDeferred = async(Dispatchers.IO) {
-                        saveImage().toString()
-                    }
-                    savedImageURI = saveImageDeferred.await()
-
-                    val intent = Intent(this@EditActivity, ResultActivity::class.java).apply {
-                        putExtra(PATH_IMAGE_JUST_SAVED, savedImageURI)
-                    }
-                    startActivity(intent)
-                    finish()
-                }
+                paintView.invalidate()
             }
 
             btnHue.setOnClickListener {
@@ -396,12 +407,14 @@ class EditActivity : AppCompatActivity() {
             }
 
             btnSticker.setOnClickListener {
+                preferences.savePaths(paintView.paths)
                 startActivity(Intent(this@EditActivity, StickerActivity::class.java))
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
 
             btnCrop.setOnClickListener {
                 val imagePathOrigin = preferences.getImagePathOrigin()
+                preferences.savePaths(paintView.paths)
                 if (imagePathOrigin != null) {
                     if (imagePathOrigin.isNotEmpty()) {
                         val imageUri: Uri
@@ -459,8 +472,6 @@ class EditActivity : AppCompatActivity() {
             loadTextItems()
             invalidate()
         }
-
-
     }
 
     private fun startCrop(imageUri: Uri) {
@@ -483,6 +494,7 @@ class EditActivity : AppCompatActivity() {
 
                 if (imageCropped != null) {
                     binding.paintView.updateBackgroundBitmap(imageCropped)
+                    preferences.saveBackgroundBitmap(imageCropped)
                 } else {
                     Log.e("EditActivity", "Unable to decode bitmap from the cropped image URI.")
                 }
@@ -673,41 +685,70 @@ class EditActivity : AppCompatActivity() {
 
     }
 
-    private fun saveImage(): Uri? {
+    private fun saveImageAndCopyToDirectory(): Uri? {
         binding.apply {
             val bitmap = paintView.canvasBitmap ?: return null
             val imageName = "edited_image_${System.currentTimeMillis()}.jpg"
-            val directory =
-                File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "photo_editor_app")
-            if (!directory.exists()) {
-                directory.mkdirs()
+
+            val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            } else {
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
             }
 
-            val file = File(directory, imageName)
-            return try {
-                FileOutputStream(file).use { outputStream ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, imageName)
+                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                put(MediaStore.Images.Media.WIDTH, bitmap.width)
+                put(MediaStore.Images.Media.HEIGHT, bitmap.height)
+                put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/photo_editor_app")
                 }
-                Handler(Looper.getMainLooper()).post {
-                    Toast.makeText(
-                        this@EditActivity,
-                        R.string.save_image_successfully,
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+            }
 
-                Uri.fromFile(file)
+            return try {
+                contentResolver.insert(imageCollection, contentValues)?.let { uri ->
+                    contentResolver.openOutputStream(uri).use { outputStream ->
+                        if (outputStream != null) {
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+
+                            lifecycleScope.launch(Dispatchers.Main) {
+                                Toast.makeText(
+                                    this@EditActivity,
+                                    R.string.save_image_successfully,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+
+                            val directory = File(
+                                getExternalFilesDir(Environment.DIRECTORY_PICTURES),
+                                "photo_editor_app"
+                            )
+                            if (!directory.exists()) {
+                                directory.mkdirs()
+                            }
+
+                            val file = File(directory, imageName)
+                            FileOutputStream(file).use { fileOutputStream ->
+                                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream)
+                            }
+                            Uri.fromFile(file)
+                        } else {
+                            throw IOException("Cannot open output stream")
+                        }
+                    }
+                } ?: throw IOException("Cannot create record in media store")
             } catch (e: IOException) {
                 e.printStackTrace()
 
-                Handler(Looper.getMainLooper()).post {
+                lifecycleScope.launch(Dispatchers.Main) {
                     Toast.makeText(
                         this@EditActivity,
                         R.string.fail_to_save_image,
                         Toast.LENGTH_SHORT
                     ).show()
                 }
-
                 null
             }
         }
@@ -733,12 +774,13 @@ class EditActivity : AppCompatActivity() {
                         val inputStream = contentResolver.openInputStream(uri)
                         val bitmap = BitmapFactory.decodeStream(inputStream)
                         binding.apply {
-                            paintView.clearCanvas()
                             preferences.clearImagePath()
                             preferences.saveImagePath(uri.toString())
                             paintView.updateBackgroundBitmap(bitmap)
+                            preferences.saveBackgroundBitmap(bitmap)
                             preferences.clearImagePathOrigin()
                             preferences.saveImagePathOrigin(uri.toString())
+
                         }
                         Log.d("EditActivity", "Bitmap size: ${bitmap.width} x ${bitmap.height}")
                     } catch (e: Exception) {

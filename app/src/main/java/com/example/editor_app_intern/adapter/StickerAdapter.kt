@@ -15,7 +15,6 @@ import com.example.editor_app_intern.model.Sticker
 import com.example.editor_app_intern.model.StickerCountManager
 import com.example.editor_app_intern.model.StickerLocal
 import com.example.editor_app_intern.ui.edit.EditActivity
-import com.google.android.gms.tasks.OnSuccessListener
 import com.google.firebase.storage.FirebaseStorage
 import java.io.File
 import java.util.UUID
@@ -25,6 +24,7 @@ class StickerAdapter(
     var stickerList: List<Sticker>, private val onStickerClick: (Sticker) -> Unit
 ) : RecyclerView.Adapter<StickerAdapter.StickerViewHolder>() {
     private var stickerCount = 0
+
     inner class StickerViewHolder(val binding: StickerItemLayoutBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
@@ -86,7 +86,8 @@ class StickerAdapter(
         val storage = FirebaseStorage.getInstance()
         val storageRef = storage.getReferenceFromUrl(url)
 
-        val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+        val picturesDir =
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
         val localFile = File(picturesDir, "$name.png")
 
         if (localFile.exists()) {

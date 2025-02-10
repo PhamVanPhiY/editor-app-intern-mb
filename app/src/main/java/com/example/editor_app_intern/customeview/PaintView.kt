@@ -31,7 +31,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
-
 class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet? = null) :
     View(context, attrs) {
     private val borderPaint = Paint().apply {
@@ -110,12 +109,12 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     private var initialTouchX = 0f
     private var initialTouchY = 0f
     private var initialTouchStickerX = 0f
-    private var preferences: SharedPreferences
+    private var preferences: SharedPreferences = SharedPreferences(context!!)
     private var initialTouchStickerY = 0f
     private var isScalingSticker = false
     var isEraserEnabled: Boolean = false
     var isEditingText = false
-    private val paths = ArrayList<DrawingPath>()
+    val paths = ArrayList<DrawingPath>()
     private val undoPaths = ArrayList<DrawingPath>()
     private var brushColor: Int
     private var brushColorForText: Int
@@ -128,7 +127,6 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     var userText: String? = null
     private var eraserRect: Rect? = null
     private val eraserSize = 100
-
 
 
     private val iconEditText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.edit)
@@ -180,7 +178,12 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     }
 
     init {
-        preferences = SharedPreferences(context!!)
+        loadPaths()
+    }
+
+    private fun loadPaths() {
+        paths.clear()
+        paths.addAll(preferences.getPaths())
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -246,13 +249,14 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
             mCanvas!!.drawColor(backgroundColor)
         }
 
+        Log.d("PaintView", "Path  ${paths} ")
+        Log.d("PaintView", "Path from sp  ${preferences.getPaths()} ")
         for (drawingPath in paths) {
             mPaint.color = drawingPath.color
             mPaint.strokeWidth = drawingPath.strokeWidth.toFloat()
             mPaint.style = Paint.Style.STROKE
             mCanvas!!.drawPath(drawingPath.path, mPaint)
         }
-
         if (isEraserEnabled && eraserRect != null) {
             mCanvas!!.drawRect(eraserRect!!, erasePaint)
         }
@@ -345,7 +349,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
 
     }
 
-    fun startTouch(x: Float, y: Float) {
+    private fun startTouch(x: Float, y: Float) {
         if (isEraserEnabled) {
             mPath = Path()
         } else {
@@ -442,6 +446,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     fun undoDrawing() {
         if (paths.size > 0) {
             undoPaths.add(paths.removeAt(paths.size - 1))
+            preferences.savePaths(paths)
             invalidate()
         }
     }
@@ -449,6 +454,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     fun redoDrawing() {
         if (undoPaths.size > 0) {
             paths.add(undoPaths.removeAt(undoPaths.size - 1))
+            preferences.savePaths(paths)
             invalidate()
         }
     }
@@ -586,7 +592,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                     initialTouchY = y
                     invalidate()
                     preferences.saveSticker(selectedStickerItem!!)
-                }else {
+                } else {
                     if (isEraserEnabled) {
                         touchMove(x, y)
                     } else if (isDrawingEnabled) {
@@ -603,7 +609,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
                     isDraggingSticker = false
                 } else if (isScalingSticker) {
                     isScalingSticker = false
-                }  else {
+                } else {
                     if (isEraserEnabled) {
                         touchUp()
                     } else if (isDrawingEnabled) {
@@ -714,6 +720,7 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         stickerItems.addAll(newStickers.distinctBy { it.id })
         invalidate()
     }
+
 
     private fun calculateTextBoundingRect(textItem: TextItem): Rect {
         PaintForText.apply {

@@ -55,6 +55,8 @@ class ResultActivity : AppCompatActivity() {
                     preferences.clearTextItems()
                     preferences.clearImagePath()
                     preferences.clearBackgroundBitmap()
+                    preferences.clearImagePathOrigin()
+                    preferences.clearPaths()
                     finishAffinity()
                 }
 
@@ -70,6 +72,8 @@ class ResultActivity : AppCompatActivity() {
                 preferences.clearTextItems()
                 preferences.clearImagePath()
                 preferences.clearBackgroundBitmap()
+                preferences.clearImagePathOrigin()
+                preferences.clearPaths()
                 val intent = Intent(this@ResultActivity, HomeActivity::class.java)
                 startActivity(intent)
                 finish()

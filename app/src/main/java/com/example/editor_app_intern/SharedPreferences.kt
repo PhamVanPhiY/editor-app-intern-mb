@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
 import com.example.editor_app_intern.customeview.DrawingPath
+import com.example.editor_app_intern.model.DrawingPathDTO
 import com.example.editor_app_intern.model.StickerLocal
 import com.example.editor_app_intern.model.TextItem
 import com.google.gson.Gson
@@ -132,14 +133,16 @@ class SharedPreferences(context: Context) {
         sharedPreferences?.edit()?.remove(IMAGE_PATH_ORIGIN_KEY)?.apply()
     }
     fun savePaths(paths: List<DrawingPath>) {
-        val json = Gson().toJson(paths)
+        val dtos = paths.map { DrawingPathDTO(it.color, it.strokeWidth, it.toPathString()) }
+        val json = Gson().toJson(dtos)
         sharedPreferences?.edit()?.putString(PATHS_KEY, json)?.apply()
     }
 
-    fun getPaths(): List<DrawingPath>? {
-        val json = sharedPreferences?.getString(PATHS_KEY, null) ?: return null
-        val type = object : TypeToken<List<DrawingPath>>() {}.type
-        return Gson().fromJson(json, type)
+    fun getPaths(): List<DrawingPath> {
+        val json = sharedPreferences?.getString(PATHS_KEY, null) ?: return emptyList()
+        val type = object : TypeToken<List<DrawingPathDTO>>() {}.type
+        val dtos: List<DrawingPathDTO> = Gson().fromJson(json, type)
+        return dtos.map { DrawingPath(it.color, it.strokeWidth, DrawingPath.fromPathString(it.pathString)) }
     }
 
     fun clearPaths() {
