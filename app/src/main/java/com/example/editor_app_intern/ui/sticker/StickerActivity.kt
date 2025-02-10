@@ -18,7 +18,6 @@ import com.example.editor_app_intern.databinding.ActivityStickerBinding
 import com.example.editor_app_intern.model.Sticker
 import com.example.editor_app_intern.model.StickerCountManager
 import com.example.editor_app_intern.model.StickerLocal
-import com.example.editor_app_intern.ui.edit.EditActivity
 import java.io.File
 import java.util.UUID
 
@@ -53,10 +52,9 @@ class StickerActivity : AppCompatActivity() {
     }
 
     private fun setUpStickerRecyclerView(stickerList: List<Sticker>) {
-        val stickerAdapter = StickerAdapter(stickerList) { sticker ->
-            val intent = Intent(this@StickerActivity, EditActivity::class.java)
+        val stickerAdapter = StickerAdapter(this@StickerActivity, stickerList) { sticker ->
             val localFile = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                getExternalFilesDir(Environment.DIRECTORY_PICTURES),
                 "${sticker.name}.png"
             )
             val stickerLocal = StickerLocal(

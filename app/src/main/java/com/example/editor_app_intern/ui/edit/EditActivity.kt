@@ -428,7 +428,7 @@ class EditActivity : AppCompatActivity() {
                         }
                         startCrop(imageUri)
                     } else {
-                        Toast.makeText(this@EditActivity, "Invalid image path", Toast.LENGTH_SHORT)
+                        Toast.makeText(this@EditActivity, R.string.invalid_image_path, Toast.LENGTH_SHORT)
                             .show()
                     }
                 }

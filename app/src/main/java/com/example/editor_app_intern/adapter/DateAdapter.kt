@@ -24,7 +24,6 @@ class DateAdapter(
         fun bind(item: Date) {
             binding.apply {
                 tvDateTime.text = item.day
-//                val sortedImages = item.imageModel.sortedByDescending { it.timestamp }
                 rcvListImageChild.layoutManager = GridLayoutManager(itemView.context,2)
                 rcvListImageChild.adapter = ImageAdapter(
                     item.imageModel,

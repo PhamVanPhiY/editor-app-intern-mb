@@ -62,4 +62,5 @@
     <string name="newest">Newest to oldest</string>
     <string name="close">Close</string>
     <string name="oldest">Oldest to newest</string>
+    <string name="invalid_image_path">Invalid image path</string>
 </resources>
