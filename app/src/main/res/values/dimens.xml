@@ -39,5 +39,6 @@
     <dimen name="size_210dp">210dp</dimen>
     <dimen name="size_30sp">30sp</dimen>
     <dimen name="size_90dp">90dp</dimen>
+    <dimen name="size_110dp">110dp</dimen>
 
 </resources>

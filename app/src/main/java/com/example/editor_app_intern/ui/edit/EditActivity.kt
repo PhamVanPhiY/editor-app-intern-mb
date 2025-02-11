@@ -13,7 +13,6 @@ import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
@@ -66,7 +65,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileNotFoundException
-import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
 
@@ -386,7 +384,7 @@ class EditActivity : AppCompatActivity() {
                                 preferences.saveBackgroundBitmap(bitmap)
                             }
 
-                            val savedImageURI = saveImageAndCopyToDirectory().toString()
+                            val savedImageURI = saveImageToGallery().toString()
 
                             withContext(Dispatchers.Main) {
                                 val intent =
@@ -428,7 +426,11 @@ class EditActivity : AppCompatActivity() {
                         }
                         startCrop(imageUri)
                     } else {
-                        Toast.makeText(this@EditActivity, R.string.invalid_image_path, Toast.LENGTH_SHORT)
+                        Toast.makeText(
+                            this@EditActivity,
+                            R.string.invalid_image_path,
+                            Toast.LENGTH_SHORT
+                        )
                             .show()
                     }
                 }
@@ -502,7 +504,10 @@ class EditActivity : AppCompatActivity() {
                             binding.paintView.updateBackgroundBitmap(imageCropped)
                             preferences.saveBackgroundBitmap(imageCropped)
                         } else {
-                            Log.e("EditActivity", "Unable to decode bitmap from the cropped image URI.")
+                            Log.e(
+                                "EditActivity",
+                                "Unable to decode bitmap from the cropped image URI."
+                            )
                         }
                     } else {
                         Log.e("EditActivity", "Result URI is null.")
@@ -512,6 +517,7 @@ class EditActivity : AppCompatActivity() {
                     Log.e("EditActivity", "Crop error: ${cropError?.message}")
                 }
             }
+
             REQUEST_CODE_STICKER -> {
                 if (resultCode == Activity.RESULT_OK) {
                     val stickerLocal: StickerLocal? = data?.getParcelableExtra(STICKER_DATA)
@@ -524,6 +530,7 @@ class EditActivity : AppCompatActivity() {
             }
         }
     }
+
     private fun applyHueFilter() {
 
         if (binding.paintView.backgroundBitmap != null) {
@@ -701,7 +708,7 @@ class EditActivity : AppCompatActivity() {
 
     }
 
-    private fun saveImageAndCopyToDirectory(): Uri? {
+    private fun saveImageToGallery(): Uri? {
         binding.apply {
             val bitmap = paintView.canvasBitmap ?: return null
             val imageName = "edited_image_${System.currentTimeMillis()}.jpg"
@@ -718,9 +725,7 @@ class EditActivity : AppCompatActivity() {
                 put(MediaStore.Images.Media.WIDTH, bitmap.width)
                 put(MediaStore.Images.Media.HEIGHT, bitmap.height)
                 put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/photo_editor_app")
-                }
+
             }
 
             return try {
@@ -736,20 +741,7 @@ class EditActivity : AppCompatActivity() {
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
-
-                            val directory = File(
-                                getExternalFilesDir(Environment.DIRECTORY_PICTURES),
-                                "photo_editor_app"
-                            )
-                            if (!directory.exists()) {
-                                directory.mkdirs()
-                            }
-
-                            val file = File(directory, imageName)
-                            FileOutputStream(file).use { fileOutputStream ->
-                                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream)
-                            }
-                            Uri.fromFile(file)
+                            uri
                         } else {
                             throw IOException("Cannot open output stream")
                         }
@@ -757,7 +749,6 @@ class EditActivity : AppCompatActivity() {
                 } ?: throw IOException("Cannot create record in media store")
             } catch (e: IOException) {
                 e.printStackTrace()
-
                 lifecycleScope.launch(Dispatchers.Main) {
                     Toast.makeText(
                         this@EditActivity,

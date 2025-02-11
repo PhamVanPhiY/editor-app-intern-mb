@@ -127,6 +127,8 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
     var userText: String? = null
     private var eraserRect: Rect? = null
     private val eraserSize = 100
+    private var cachedBitmap: Bitmap? = null
+    private var cachedCanvas: Canvas? = null
 
 
     private val iconEditText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.edit)
@@ -190,6 +192,9 @@ class PaintView @JvmOverloads constructor(context: Context?, attrs: AttributeSet
         super.onSizeChanged(w, h, oldw, oldh)
         canvasBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         mCanvas = Canvas(canvasBitmap!!)
+
+        cachedBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        cachedCanvas = Canvas(cachedBitmap!!)
     }
 
 

@@ -11,7 +11,8 @@
     <jp.co.cyberagent.android.gpuimage.GPUImageView
         android:id="@+id/gpu_image_view"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/size_600dp"
+        android:layout_height="@dimen/size_0dp"
+        app:layout_constraintBottom_toTopOf="@id/camera_capture_button"
         app:gpuimage_show_loading="false"
         app:gpuimage_surface_type="texture_view"
         app:layout_constraintEnd_toEndOf="parent"
@@ -182,7 +183,6 @@
         android:id="@+id/camera_capture_button"
         android:layout_width="@dimen/size_80dp"
         android:layout_height="@dimen/size_80dp"
-        android:layout_marginBottom="@dimen/size_90dp"
         android:background="@drawable/camera"
         android:contentDescription="@null"
         android:elevation="@dimen/size_2dp"

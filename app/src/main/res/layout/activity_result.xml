@@ -8,18 +8,9 @@
     android:layout_height="match_parent"
     tools:context=".ui.result.ResultActivity">
 
-    <ImageView
-        android:id="@+id/btn_close_app"
-        android:layout_width="@dimen/size_20dp"
-        android:layout_height="@dimen/size_20dp"
-        android:background="@drawable/close_app"
-        android:contentDescription="@null"
-        app:layout_constraintBottom_toBottomOf="@id/btn_saved_text"
-        app:layout_constraintEnd_toStartOf="@id/btn_saved_text"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/btn_saved_text" />
 
     <TextView
+
         android:id="@+id/btn_saved_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -27,8 +18,8 @@
         android:fontFamily="@font/poppins_bold"
         android:text="@string/saved_project"
         android:textSize="@dimen/size_16sp"
-        app:layout_constraintEnd_toStartOf="@id/btn_home"
-        app:layout_constraintStart_toEndOf="@id/btn_close_app"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView

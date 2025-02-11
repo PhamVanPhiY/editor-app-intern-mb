@@ -2,12 +2,17 @@ package com.example.editor_app_intern.ui.camera
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.media.ExifInterface
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import androidx.activity.enableEdgeToEdge
@@ -56,6 +61,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.ExecutorService
@@ -135,7 +141,8 @@ class CameraActivity : AppCompatActivity() {
         }
         gpuImageView.requestRender()
     }
-    private fun clearFullSharePreference(){
+
+    private fun clearFullSharePreference() {
         preferences.clearPaths()
         preferences.clearStickers()
         preferences.clearBackgroundBitmap()
@@ -143,6 +150,7 @@ class CameraActivity : AppCompatActivity() {
         preferences.clearImagePathOrigin()
         preferences.clearImagePath()
     }
+
     private fun setUpView() {
         supportActionBar?.hide()
 
@@ -257,6 +265,7 @@ class CameraActivity : AppCompatActivity() {
     }
 
 
+
     private fun startCountdown() {
         countdownTimer?.cancel()
 
@@ -311,7 +320,6 @@ class CameraActivity : AppCompatActivity() {
                 preferences.saveImagePathOrigin(imagePath)
             }
             startActivity(intent)
-            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
         }
     }
 

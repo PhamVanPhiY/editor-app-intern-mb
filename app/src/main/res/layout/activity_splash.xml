@@ -18,15 +18,17 @@
 
     <TextView
         android:id="@+id/tv_splash_screen"
-        android:layout_width="@dimen/size_350dp"
+        android:layout_width="@dimen/size_0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/size_20dp"
         android:layout_marginBottom="@dimen/size_50dp"
+        android:layout_marginEnd="@dimen/size_10dp"
         android:fontFamily="@font/poppins_bold"
         android:maxLines="2"
         android:text="@string/slogan"
         android:textColor="@color/white"
         android:textSize="@dimen/size_30sp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 

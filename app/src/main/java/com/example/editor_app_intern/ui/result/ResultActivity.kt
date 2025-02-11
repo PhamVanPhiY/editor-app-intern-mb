@@ -37,35 +37,11 @@ class ResultActivity : AppCompatActivity() {
 
     private fun setUpView() {
         binding.apply {
-            btnCloseApp.setOnClickListener {
-                super.onBackPressed()
-            }
             btnEditAgain.setOnClickListener {
                 val intent = Intent(this@ResultActivity, EditActivity::class.java)
                 intent.putExtra(IS_EDIT_AGAIN, true)
                 startActivity(intent)
                 finish()
-            }
-            btnCloseApp.setOnClickListener {
-                val builder = AlertDialog.Builder(this@ResultActivity)
-                builder.setTitle("Exit Application")
-                builder.setMessage("Are you sure you want to exit?")
-                builder.setPositiveButton("Yes") { dialog, which ->
-                    preferences.clearStickers()
-                    preferences.clearTextItems()
-                    preferences.clearImagePath()
-                    preferences.clearBackgroundBitmap()
-                    preferences.clearImagePathOrigin()
-                    preferences.clearPaths()
-                    finishAffinity()
-                }
-
-                builder.setNegativeButton("No") { dialog, which ->
-                    dialog.dismiss()
-                }
-
-                val dialog = builder.create()
-                dialog.show()
             }
             btnHome.setOnClickListener {
                 preferences.clearStickers()

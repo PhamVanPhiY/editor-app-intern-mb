@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -92,11 +93,12 @@ class ImageDetailActivity : AppCompatActivity() {
 
     private fun deleteImage() {
         if (imageUri != null) {
-            val file = File(Uri.parse(imageUri).path ?: "")
-
-            if (file.exists()) {
-                val deleted = file.delete()
-                if (deleted) {
+            val contentResolver = contentResolver
+            try {
+                val uriToDelete = Uri.parse(imageUri)
+                Log.d("ImageDetailActivity", "Attempting to delete: $uriToDelete")
+                val rowsDeleted = contentResolver.delete(uriToDelete, null, null)
+                if (rowsDeleted > 0) {
                     Toast.makeText(this, R.string.delete_image_successfully, Toast.LENGTH_SHORT)
                         .show()
                     setResult(RESULT_OK)
@@ -104,9 +106,12 @@ class ImageDetailActivity : AppCompatActivity() {
                 } else {
                     Toast.makeText(this, R.string.cannot_delete, Toast.LENGTH_SHORT).show()
                 }
-            } else {
-                Toast.makeText(this, R.string.image_does_not_exist, Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, R.string.cannot_delete, Toast.LENGTH_SHORT).show()
             }
+        } else {
+            Toast.makeText(this, R.string.image_does_not_exist, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -139,6 +144,7 @@ class ImageDetailActivity : AppCompatActivity() {
             type = "image/png"
         }
         startActivity(Intent.createChooser(intent, "Share via"))
+        finish()
     }
 
     private fun getImageToShare(bitmap: Bitmap): Uri? {
