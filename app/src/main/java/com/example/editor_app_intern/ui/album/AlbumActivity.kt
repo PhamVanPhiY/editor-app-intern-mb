@@ -17,6 +17,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.editor_app_intern.R
+import com.example.editor_app_intern.SharedPreferences
 import com.example.editor_app_intern.adapter.DateAdapter
 import com.example.editor_app_intern.constant.Constants.PATH_IMAGE_FROM_ALBUM
 import com.example.editor_app_intern.databinding.ActivityAlbumBinding
@@ -36,6 +37,7 @@ class AlbumActivity : AppCompatActivity(), OnImageClickListener {
     private lateinit var dateAdapter: DateAdapter
     private lateinit var permissionsRequestLauncher: ActivityResultLauncher<Array<String>>
     private var isResumeEnable = false
+    private lateinit var preferences: SharedPreferences
 
     companion object {
         const val REQUEST_CODE = 1001
@@ -51,13 +53,21 @@ class AlbumActivity : AppCompatActivity(), OnImageClickListener {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        clearFullSharedPreference()
         setLauncher()
         setUpView()
         setUpRecyclerViewImage()
         checkPermissionsAndLoadImages()
 
     }
-
+    private fun clearFullSharedPreference(){
+        preferences = SharedPreferences(this)
+        preferences.apply {
+            clearStickers()
+            clearTextItems()
+            clearPaths()
+        }
+    }
     private fun checkPermissionsAndLoadImages() {
         if (hasStoragePermission()) {
             viewModel.loadImagesFromGallery()

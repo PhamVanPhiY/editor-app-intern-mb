@@ -38,6 +38,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.editor_app_intern.R
 import com.example.editor_app_intern.SharedPreferences
 import com.example.editor_app_intern.adapter.FontAdapter
+import com.example.editor_app_intern.constant.Constants.FOLDER_IMAGE_SAVED
 import com.example.editor_app_intern.constant.Constants.IS_EDIT_AGAIN
 import com.example.editor_app_intern.constant.Constants.PATH_IMAGE_JUST_SAVED
 import com.example.editor_app_intern.constant.Constants.STICKER_DATA
@@ -205,8 +206,12 @@ class EditActivity : AppCompatActivity() {
     private fun setUpGetSticker() {
         preferences = SharedPreferences(this)
         val savedStickers = preferences.getStickers()
-        binding.paintView.stickerItems.clear()
-        binding.paintView.stickerItems.addAll(savedStickers)
+        binding.paintView.apply {
+           stickerItems.clear()
+            stickerItems.addAll(savedStickers)
+            drawStickers()
+        }
+
     }
 
     @SuppressLint("ResourceType", "ClickableViewAccessibility")
@@ -368,12 +373,11 @@ class EditActivity : AppCompatActivity() {
 
             btnSave.setOnClickListener {
                 preferences.savePaths(paintView.paths)
-
                 paintView.isTextBoxVisible = false
                 paintView.isStickerTextBoxVisible = false
                 paintView.selectedTextItem = null
                 paintView.selectedStickerItem = null
-
+                //paintView.drawStickers()
                 paintView.viewTreeObserver.addOnPreDrawListener(object :
                     ViewTreeObserver.OnPreDrawListener {
                     override fun onPreDraw(): Boolean {
@@ -712,6 +716,7 @@ class EditActivity : AppCompatActivity() {
         binding.apply {
             val bitmap = paintView.canvasBitmap ?: return null
             val imageName = "edited_image_${System.currentTimeMillis()}.jpg"
+            val directoryName = FOLDER_IMAGE_SAVED
 
             val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
@@ -725,7 +730,7 @@ class EditActivity : AppCompatActivity() {
                 put(MediaStore.Images.Media.WIDTH, bitmap.width)
                 put(MediaStore.Images.Media.HEIGHT, bitmap.height)
                 put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
-
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/$directoryName")
             }
 
             return try {

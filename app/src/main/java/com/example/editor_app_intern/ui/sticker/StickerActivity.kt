@@ -16,7 +16,6 @@ import com.example.editor_app_intern.adapter.StickerAdapter
 import com.example.editor_app_intern.constant.Constants.STICKER_DATA
 import com.example.editor_app_intern.databinding.ActivityStickerBinding
 import com.example.editor_app_intern.model.Sticker
-import com.example.editor_app_intern.model.StickerCountManager
 import com.example.editor_app_intern.model.StickerLocal
 import java.io.File
 import java.util.UUID
@@ -63,13 +62,12 @@ class StickerActivity : AppCompatActivity() {
                 widthSticker = 200f,
                 heightSticker = 200f,
                 x = 100f,
-                y = (100f + StickerCountManager.count * 220f),
+                y = 100f,
                 false,
             )
 
             val sharedPrefs = SharedPreferences(this)
             sharedPrefs.saveSticker(stickerLocal)
-            StickerCountManager.count++
             val resultIntent = Intent()
             resultIntent.putExtra(STICKER_DATA, stickerLocal)
             setResult(RESULT_OK, resultIntent)

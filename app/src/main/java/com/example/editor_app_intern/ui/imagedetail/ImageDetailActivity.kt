@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
 import android.view.MenuItem
 import android.widget.Toast
@@ -17,6 +18,7 @@ import androidx.core.view.WindowInsetsCompat
 import com.bumptech.glide.Glide
 import com.example.editor_app_intern.R
 import com.example.editor_app_intern.SharedPreferences
+import com.example.editor_app_intern.constant.Constants.FOLDER_IMAGE_SAVED
 import com.example.editor_app_intern.constant.Constants.PATH_IMAGE_FROM_ALBUM
 import com.example.editor_app_intern.databinding.ActivityImageDetailBinding
 import com.example.editor_app_intern.ui.edit.EditActivity
@@ -131,8 +133,29 @@ class ImageDetailActivity : AppCompatActivity() {
         if (imageUri != null) {
             binding.apply {
                 Glide.with(this@ImageDetailActivity).load(Uri.parse(imageUri)).into(ivImageDetail)
+                val check = isImageOwnedByApp(Uri.parse(imageUri))
+                Log.d("ImageDetailActivity", "Check image: $check")
+                if (isImageOwnedByApp(Uri.parse(imageUri))) {
+                    btnDeleteImage.isEnabled = true
+                } else {
+                    btnDeleteImage.isEnabled = false
+                    btnDeleteImage.alpha = 0.5f
+                }
             }
         }
+        Log.d("ImageDetailActivity", "Image URI: $imageUri")
+    }
+
+    private fun isImageOwnedByApp(uri: Uri): Boolean {
+        val cursor = contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val dataIndex = it.getColumnIndex(MediaStore.Images.Media.DATA)
+                val imagePath = it.getString(dataIndex)
+                return imagePath.contains("/Pictures/${FOLDER_IMAGE_SAVED}/")
+            }
+        }
+        return false
     }
 
     private fun shareImageAndText(bitmap: Bitmap) {

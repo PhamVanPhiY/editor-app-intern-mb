@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.editor_app_intern.databinding.DateParentItemLayoutBinding
+import com.example.editor_app_intern.extension.GridSpacingItemDecoration
 import com.example.editor_app_intern.interfaces.OnImageClickListener
 import com.example.editor_app_intern.model.Date
 
@@ -28,6 +29,7 @@ class DateAdapter(
                         imageClickListener.onImageClick(image.uri)
                     }
                 )
+                rcvListImageChild.addItemDecoration(GridSpacingItemDecoration(2, 16))
             }
 
         }
